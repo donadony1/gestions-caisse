@@ -6,7 +6,7 @@ import { ApiResponse, DashboardData, Movement, Category, ReportData, User } from
 
 // Récupération de l'URL du backend depuis le fichier .env (Vite: VITE_API_BASE_URL)
 const API_BASE_URL = 
-  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) ||
   'http://localhost/personnel/gestions-caisse1/backend/api';
 
 class ApiClient {
