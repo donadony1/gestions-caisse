@@ -5,8 +5,8 @@ import { api } from '@/lib/api';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@caisse.local');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,11 +23,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickLogin = (roleEmail: string) => {
-    setEmail(roleEmail);
-    setPassword('password123');
   };
 
   return (
@@ -71,7 +66,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                  placeholder="nom@caisse.local"
+                  placeholder="nom@exemple.com"
                 />
               </div>
             </div>
@@ -108,37 +103,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Profils de démonstration rapide */}
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block text-center mb-3">
-              Comptes Démo Rapides
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin@caisse.local')}
-                className="py-2 px-2 text-[11px] font-bold rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('controleur@caisse.local')}
-                className="py-2 px-2 text-[11px] font-bold rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-colors"
-              >
-                Contrôleur
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('caissier@caisse.local')}
-                className="py-2 px-2 text-[11px] font-bold rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
-              >
-                Caissier
-              </button>
-            </div>
-            <p className="text-[10px] text-slate-400 text-center mt-2">Mot de passe par défaut : password123</p>
-          </div>
 
         </div>
       </div>
