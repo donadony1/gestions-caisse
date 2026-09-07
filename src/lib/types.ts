@@ -49,8 +49,10 @@ export interface Movement {
   motif_rejet?: string | null;
   createur_nom?: string | null;
   createur_prenom?: string | null;
+  createur_email?: string | null;
   validateur_nom?: string | null;
   validateur_prenom?: string | null;
+  validateur_email?: string | null;
 }
 
 export interface Financials {

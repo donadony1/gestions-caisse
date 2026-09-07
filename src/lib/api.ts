@@ -221,6 +221,19 @@ class ApiClient {
     return res.data!;
   }
 
+  getExportCsvUrl(params?: { date_debut?: string; date_fin?: string; type?: string }): string {
+    const query = new URLSearchParams();
+    query.append('format', 'csv');
+    if (params?.date_debut) query.append('date_debut', params.date_debut);
+    if (params?.date_fin) query.append('date_fin', params.date_fin);
+    if (params?.type) query.append('type', params.type);
+    
+    const token = this.getToken();
+    if (token) query.append('token', token);
+
+    return `${API_BASE_URL}/rapports.php?${query.toString()}`;
+  }
+
   // --- Membres / Utilisateurs ---
   async getUsers(): Promise<User[]> {
     const res = await this.request<User[]>('/users.php');
