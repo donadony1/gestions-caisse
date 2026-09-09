@@ -4,16 +4,28 @@
 
 import { ApiResponse, DashboardData, Movement, Category, ReportData, User, RegisterData, SuperAdminData } from './types';
 
-// Récupération de l'URL du backend depuis le fichier .env ou Vercel (GES_API_URL, GES_API_BASE_URL, API_URL, VITE_API_URL)
-const API_BASE_URL = 
-  (typeof import.meta !== 'undefined' && (
-    (import.meta as any).env?.GES_API_URL ||
-    (import.meta as any).env?.GES_API_BASE_URL ||
-    (import.meta as any).env?.API_URL ||
-    (import.meta as any).env?.VITE_API_BASE_URL ||
-    (import.meta as any).env?.VITE_API_URL
-  )) ||
-  'http://localhost/personnel/gestions-caisse1/backend/api';
+function getApiBaseUrl(): string {
+  const envUrl = 
+    (typeof import.meta !== 'undefined' && (
+      (import.meta as any).env?.GES_API_URL ||
+      (import.meta as any).env?.GES_API_BASE_URL ||
+      (import.meta as any).env?.API_URL ||
+      (import.meta as any).env?.VITE_API_BASE_URL ||
+      (import.meta as any).env?.VITE_API_URL
+    ));
+
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://gestion-caise.hondap.com/api';
+  }
+
+  return 'http://localhost/personnel/gestions-caisse1/backend/api';
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 class ApiClient {
   public getToken(): string | null {
