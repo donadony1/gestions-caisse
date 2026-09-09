@@ -12,22 +12,105 @@ import SuperAdminPage from './app/superadmin/page';
 import VerifyEmailPage from './app/verify-email/page';
 import ForgotPasswordPage from './app/forgot-password/page';
 import ResetPasswordPage from './app/reset-password/page';
+import { ProtectedRoute, PublicOnlyRoute } from './components/ProtectedRoute';
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<DashboardPage />} />
-      <Route path="/entrees" element={<EntreesPage />} />
-      <Route path="/sorties" element={<SortiesPage />} />
-      <Route path="/controle" element={<ControlePage />} />
-      <Route path="/rapports" element={<RapportsPage />} />
-      <Route path="/membres" element={<MembresPage />} />
-      <Route path="/superadmin" element={<SuperAdminPage />} />
+      {/* Routes protégées */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/entrees"
+        element={
+          <ProtectedRoute>
+            <EntreesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sorties"
+        element={
+          <ProtectedRoute>
+            <SortiesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/controle"
+        element={
+          <ProtectedRoute allowedRoles={['admin', 'controleur']}>
+            <ControlePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rapports"
+        element={
+          <ProtectedRoute>
+            <RapportsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/membres"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <MembresPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/superadmin"
+        element={
+          <ProtectedRoute allowedRoles={['superadmin']}>
+            <SuperAdminPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Routes d'authentification publiques */}
+      <Route
+        path="/login"
+        element={
+          <PublicOnlyRoute>
+            <LoginPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicOnlyRoute>
+            <RegisterPage />
+          </PublicOnlyRoute>
+        }
+      />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicOnlyRoute>
+            <ForgotPasswordPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <PublicOnlyRoute>
+            <ResetPasswordPage />
+          </PublicOnlyRoute>
+        }
+      />
+
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
