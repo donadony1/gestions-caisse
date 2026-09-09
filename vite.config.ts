@@ -4,7 +4,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  envPrefix: ['VITE_', 'API_'],
+  envPrefix: ['GES_', 'VITE_', 'API_'],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

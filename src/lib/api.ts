@@ -4,9 +4,11 @@
 
 import { ApiResponse, DashboardData, Movement, Category, ReportData, User, RegisterData, SuperAdminData } from './types';
 
-// Récupération de l'URL du backend depuis le fichier .env (API_URL ou VITE_API_BASE_URL)
+// Récupération de l'URL du backend depuis le fichier .env ou Vercel (GES_API_URL, GES_API_BASE_URL, API_URL, VITE_API_URL)
 const API_BASE_URL = 
   (typeof import.meta !== 'undefined' && (
+    (import.meta as any).env?.GES_API_URL ||
+    (import.meta as any).env?.GES_API_BASE_URL ||
     (import.meta as any).env?.API_URL ||
     (import.meta as any).env?.VITE_API_BASE_URL ||
     (import.meta as any).env?.VITE_API_URL
