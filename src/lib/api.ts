@@ -75,10 +75,12 @@ class ApiClient {
     }
 
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    const url = `${API_BASE_URL}${cleanEndpoint}`;
+    const baseUrl = getApiBaseUrl();
+    const url = `${baseUrl}${cleanEndpoint}`;
 
     try {
       const response = await fetch(url, {
+        mode: 'cors',
         ...options,
         headers,
       });
@@ -98,6 +100,9 @@ class ApiClient {
 
       return data;
     } catch (err: any) {
+      if (err.message && err.message.toLowerCase().includes('failed to fetch')) {
+        throw new Error(`Impossible de contacter l'API (${url}). Veuillez vérifier votre connexion ou recharger la page (Ctrl+F5).`);
+      }
       throw new Error(err.message || "Impossible de contacter l'API backend.");
     }
   }
@@ -219,8 +224,10 @@ class ApiClient {
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`${API_BASE_URL}/entrees.php`, {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/entrees.php`, {
       method: 'POST',
+      mode: 'cors',
       headers,
       body: formData,
     });
@@ -255,8 +262,10 @@ class ApiClient {
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`${API_BASE_URL}/sorties.php`, {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/sorties.php`, {
       method: 'POST',
+      mode: 'cors',
       headers,
       body: formData,
     });
@@ -306,7 +315,8 @@ class ApiClient {
     const token = this.getToken();
     if (token) query.append('token', token);
 
-    return `${API_BASE_URL}/rapports.php?${query.toString()}`;
+    const baseUrl = getApiBaseUrl();
+    return `${baseUrl}/rapports.php?${query.toString()}`;
   }
 
   // --- Membres / Utilisateurs ---
@@ -322,8 +332,10 @@ class ApiClient {
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`${API_BASE_URL}/users.php`, {
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/users.php`, {
       method: 'POST',
+      mode: 'cors',
       headers,
       body: formData,
     });
