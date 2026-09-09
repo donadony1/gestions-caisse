@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Upload, Check, AlertCircle, ArrowUpRight } from 'lucide-react';
-import { User } from '@/lib/types';
+import { User, Category } from '@/lib/types';
 import { api } from '@/lib/api';
 
 interface AddSortieModalProps {
@@ -8,23 +8,23 @@ interface AddSortieModalProps {
   onClose: () => void;
   onSuccess: () => void;
   user?: User | null;
+  categories?: Category[];
+  devise?: string;
 }
-
-const BENEFICIAIRE_OPTIONS = [
-  'Fournisseur',
-  'Membre team',
-  'Service tech'
-];
 
 export const AddSortieModal: React.FC<AddSortieModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  user
+  user,
+  categories = [],
+  devise
 }) => {
+  const currentDevise = devise || api.getSavedUser()?.entreprise?.devise || 'FCFA';
   const [montant, setMontant] = useState('');
   const [motif, setMotif] = useState('');
-  const [beneficiaire, setBeneficiaire] = useState(BENEFICIAIRE_OPTIONS[0]);
+  const [beneficiaire, setBeneficiaire] = useState('');
+  const [categorieId, setCategorieId] = useState('');
   const [modePaiement, setModePaiement] = useState('especes');
   const [dateMouvement, setDateMouvement] = useState(new Date().toISOString().split('T')[0]);
   const [file, setFile] = useState<File | null>(null);
@@ -49,7 +49,7 @@ export const AddSortieModal: React.FC<AddSortieModalProps> = ({
       return;
     }
     if (!beneficiaire.trim()) {
-      setError('Veuillez sélectionner un bénéficiaire.');
+      setError('Veuillez renseigner un bénéficiaire ou demandeur.');
       return;
     }
 
@@ -59,6 +59,9 @@ export const AddSortieModal: React.FC<AddSortieModalProps> = ({
       formData.append('montant', numMontant.toString());
       formData.append('motif', motif.trim());
       formData.append('beneficiaire', beneficiaire.trim());
+      if (categorieId) {
+        formData.append('categorie_id', categorieId);
+      }
       formData.append('mode_paiement', modePaiement);
       formData.append('date_mouvement', dateMouvement);
       if (user?.role === 'admin' && autoValide) {
@@ -74,7 +77,8 @@ export const AddSortieModal: React.FC<AddSortieModalProps> = ({
       // Reset
       setMontant('');
       setMotif('');
-      setBeneficiaire(BENEFICIAIRE_OPTIONS[0]);
+      setBeneficiaire('');
+      setCategorieId('');
       setFile(null);
     } catch (err: any) {
       setError(err.message || "Erreur lors de l'enregistrement");
@@ -119,7 +123,7 @@ export const AddSortieModal: React.FC<AddSortieModalProps> = ({
           {/* Montant */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Montant à décaisser (FCFA) *
+              Montant à décaisser ({currentDevise}) *
             </label>
             <div className="relative">
               <input
@@ -132,27 +136,46 @@ export const AddSortieModal: React.FC<AddSortieModalProps> = ({
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-lg font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-rose-600">
-                FCFA
+                {currentDevise}
               </span>
             </div>
           </div>
 
-          {/* Bénéficiaire (Liste déroulante) */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Bénéficiaire / Demandeur *
-            </label>
-            <select
-              value={beneficiaire}
-              onChange={(e) => setBeneficiaire(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-            >
-              {BENEFICIAIRE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
+          {/* Catégorie & Bénéficiaire */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Catégorie */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Catégorie de dépense
+              </label>
+              <select
+                value={categorieId}
+                onChange={(e) => setCategorieId(e.target.value)}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+              >
+                <option value="">Général / Sans catégorie</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Bénéficiaire */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Bénéficiaire / Demandeur *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Ex: Fournisseur, Employé..."
+                value={beneficiaire}
+                onChange={(e) => setBeneficiaire(e.target.value)}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+              />
+            </div>
           </div>
 
           {/* Motif */}

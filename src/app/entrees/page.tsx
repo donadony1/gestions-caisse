@@ -87,7 +87,7 @@ export default function EntreesPage() {
             <div>
               <h1 className="text-xl sm:text-2xl font-extrabold">Gestion des Encaissements</h1>
               <p className="text-xs text-emerald-200 mt-0.5">
-                Total encaissé : <span className="font-bold text-white">{formatMoney(summary?.total_montant)} FCFA</span>
+                Total encaissé : <span className="font-bold text-white">{formatMoney(summary?.total_montant)} {user?.entreprise?.devise || 'FCFA'}</span>
               </p>
             </div>
           </div>
@@ -106,6 +106,7 @@ export default function EntreesPage() {
           movements={entrees}
           title="Historique des Entrées de Caisse"
           showSearch={true}
+          devise={user?.entreprise?.devise || 'FCFA'}
         />
 
       </main>
@@ -120,6 +121,7 @@ export default function EntreesPage() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={loadEntrees}
         categories={categories}
+        devise={user?.entreprise?.devise || 'FCFA'}
       />
     </div>
   );

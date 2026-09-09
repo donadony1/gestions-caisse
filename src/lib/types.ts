@@ -2,16 +2,77 @@
  * Types TypeScript pour la gestion de caisse
  */
 
-export type UserRole = 'admin' | 'controleur' | 'caissier';
+export type UserRole = 'superadmin' | 'admin' | 'controleur' | 'caissier';
+
+export interface Entreprise {
+  id: number;
+  nom: string;
+  slug: string;
+  devise: string;
+  plan: 'gratuit' | 'pro' | 'enterprise';
+  telephone?: string | null;
+  logo_url?: string | null;
+  actif?: number | boolean;
+}
+
+export interface EntrepriseItem extends Entreprise {
+  created_at: string;
+  nb_users: number;
+  nb_mouvements: number;
+  volume_mouvements: number;
+  admin_email?: string | null;
+}
+
+export interface SaaSPlanStat {
+  plan: 'gratuit' | 'pro' | 'enterprise';
+  count: number;
+}
+
+export interface SaaSAuditLog {
+  id: number;
+  user_id: number;
+  entreprise_id?: number | null;
+  action: string;
+  details?: string | null;
+  ip_address?: string | null;
+  created_at: string;
+  user_nom?: string | null;
+  user_email?: string | null;
+  entreprise_nom?: string | null;
+}
+
+export interface SuperAdminData {
+  stats: {
+    total_entreprises: number;
+    total_users: number;
+    total_mouvements: number;
+    volume_total: number;
+    plans: SaaSPlanStat[];
+  };
+  entreprises: EntrepriseItem[];
+  recent_logs: SaaSAuditLog[];
+}
 
 export interface User {
   id: number;
+  entreprise_id?: number;
   nom: string;
   prenom: string;
   email: string;
   role: UserRole;
   avatar_url?: string | null;
   actif?: number | boolean;
+  entreprise?: Entreprise;
+}
+
+export interface RegisterData {
+  nom_entreprise: string;
+  devise?: string;
+  telephone?: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  password: string;
 }
 
 export type MovementType = 'entree' | 'sortie';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Wallet, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -19,6 +19,10 @@ export default function LoginPage() {
       await api.login(email, password);
       navigate('/');
     } catch (err: any) {
+      if (err.message && err.message.toLowerCase().includes('confirm') || err.message?.toLowerCase().includes('vérifi')) {
+        navigate(`/verify-email?email=${encodeURIComponent(email.trim())}`);
+        return;
+      }
       setError(err.message || 'Identifiants invalides');
     } finally {
       setLoading(false);
@@ -72,9 +76,17 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Mot de Passe
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Mot de Passe
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:underline"
+                >
+                  Mot de passe oublié ?
+                </Link>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
@@ -91,7 +103,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 transition-all active:scale-[0.98] disabled:opacity-50"
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center space-x-2 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
             >
               {loading ? (
                 <span>Connexion en cours...</span>
@@ -103,6 +115,15 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+            <p className="text-xs text-slate-500">
+              Vous n'avez pas encore d'espace ?{' '}
+              <Link to="/register" className="font-bold text-emerald-600 hover:text-emerald-700 hover:underline">
+                Créer un compte entreprise
+              </Link>
+            </p>
+          </div>
 
         </div>
       </div>

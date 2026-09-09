@@ -105,6 +105,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-7 space-y-6">
             <HeroBalance
               financials={data?.financials ?? null}
+              devise={user?.entreprise?.devise || 'FCFA'}
               onOpenEntreeModal={() => setIsEntreeModalOpen(true)}
               onOpenSortieModal={() => setIsSortieModalOpen(true)}
             />
@@ -117,6 +118,7 @@ export default function DashboardPage() {
             <MovementsList
               movements={data?.recent_movements || []}
               title="Derniers Mouvements de Caisse"
+              devise={user?.entreprise?.devise || 'FCFA'}
               onSelectMovement={(m) => {
                 if (m.statut === 'en_attente' && (user?.role === 'admin' || user?.role === 'controleur')) {
                   setSelectedMovement(m);
@@ -143,6 +145,7 @@ export default function DashboardPage() {
         onClose={() => setIsEntreeModalOpen(false)}
         onSuccess={loadData}
         categories={categories}
+        devise={user?.entreprise?.devise || 'FCFA'}
       />
 
       <AddSortieModal
@@ -150,6 +153,8 @@ export default function DashboardPage() {
         onClose={() => setIsSortieModalOpen(false)}
         onSuccess={loadData}
         user={user}
+        categories={categories}
+        devise={user?.entreprise?.devise || 'FCFA'}
       />
 
       <ValidationModal
@@ -157,6 +162,7 @@ export default function DashboardPage() {
         mouvement={selectedMovement}
         onClose={() => setSelectedMovement(null)}
         onSuccess={loadData}
+        devise={user?.entreprise?.devise || 'FCFA'}
       />
 
     </div>

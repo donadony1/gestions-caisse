@@ -10,14 +10,17 @@ interface AddEntreeModalProps {
   onClose: () => void;
   onSuccess: () => void;
   categories: Category[];
+  devise?: string;
 }
 
 export const AddEntreeModal: React.FC<AddEntreeModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  categories = []
+  categories = [],
+  devise
 }) => {
+  const currentDevise = devise || api.getSavedUser()?.entreprise?.devise || 'FCFA';
   const [montant, setMontant] = useState('');
   const [motif, setMotif] = useState('');
   const [payeur, setPayeur] = useState('');
@@ -109,7 +112,7 @@ export const AddEntreeModal: React.FC<AddEntreeModalProps> = ({
           {/* Montant */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Montant (FCFA) *
+              Montant ({currentDevise}) *
             </label>
             <div className="relative">
               <input
@@ -122,7 +125,7 @@ export const AddEntreeModal: React.FC<AddEntreeModalProps> = ({
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-lg font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600">
-                FCFA
+                {currentDevise}
               </span>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, LogOut, Users } from 'lucide-react';
+import { Bell, LogOut, Users, Building2, ShieldAlert } from 'lucide-react';
 import { User } from '@/lib/types';
 import { api } from '@/lib/api';
 
@@ -20,6 +20,8 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ user, pendingCount = 0 }) 
 
   const getRoleBadge = (role?: string) => {
     switch (role) {
+      case 'superadmin':
+        return { label: '👑 SuperAdmin', color: 'bg-amber-500/15 text-amber-700 border-amber-300 font-bold' };
       case 'admin':
         return { label: 'Admin', color: 'bg-indigo-500/10 text-indigo-700 border-indigo-200' };
       case 'controleur':
@@ -64,17 +66,41 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ user, pendingCount = 0 }) 
               <h2 className="text-sm font-bold text-slate-800 leading-tight">
                 {user ? `${user.prenom} ${user.nom}` : 'Gestionnaire Caisse'}
               </h2>
-              <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border ${roleInfo.color}`}>
+              <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border ${roleInfo.color}`}>
                 {roleInfo.label}
               </span>
+              {user?.entreprise?.nom && (
+                <span className="hidden sm:inline-flex items-center space-x-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  <Building2 className="w-3 h-3 text-emerald-600" />
+                  <span className="max-w-[140px] truncate">{user.entreprise.nom}</span>
+                </span>
+              )}
             </div>
-            <p className="text-xs text-slate-500 capitalize">{todayFormatted}</p>
+            <div className="flex items-center space-x-2 text-xs text-slate-500 capitalize">
+              <span>{todayFormatted}</span>
+              {user?.entreprise?.devise && (
+                <span className="text-[11px] font-bold text-slate-400 uppercase">
+                  • Devise : {user.entreprise.devise}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Actions : Gestion Membres (Admin), Notifications (Contrôleur/Admin) & Déconnexion */}
+        {/* Actions : SuperAdmin, Gestion Membres, Notifications & Déconnexion */}
         <div className="flex items-center space-x-2">
-          {user?.role === 'admin' && (
+          {user?.role === 'superadmin' && (
+            <Link
+              to="/superadmin"
+              className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300/80 text-xs font-bold transition-all flex items-center space-x-1.5 shadow-sm"
+              title="Portail Super-Admin SaaS"
+            >
+              <ShieldAlert className="w-4 h-4 text-amber-600" />
+              <span className="hidden sm:inline">Portail SaaS</span>
+            </Link>
+          )}
+
+          {(user?.role === 'admin' || user?.role === 'superadmin') && (
             <Link
               to="/membres"
               className="p-2 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 transition-colors flex items-center space-x-1"

@@ -154,28 +154,28 @@ export default function RapportsPage() {
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-card">
               <span className="text-xs text-slate-400 font-semibold">Solde Initial</span>
               <p className="text-base sm:text-lg font-bold text-slate-800 mt-1">
-                {formatMoney(report.periode.solde_initial)} <span className="text-xs font-normal">FCFA</span>
+                {formatMoney(report.periode.solde_initial)} <span className="text-xs font-normal">{user?.entreprise?.devise || 'FCFA'}</span>
               </p>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-card">
               <span className="text-xs text-emerald-600 font-semibold">+ Total Entrées</span>
               <p className="text-base sm:text-lg font-extrabold text-emerald-600 mt-1">
-                +{formatMoney(report.periode.total_entrees)} <span className="text-xs font-normal">FCFA</span>
+                +{formatMoney(report.periode.total_entrees)} <span className="text-xs font-normal">{user?.entreprise?.devise || 'FCFA'}</span>
               </p>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-card">
               <span className="text-xs text-rose-600 font-semibold">- Total Sorties</span>
               <p className="text-base sm:text-lg font-extrabold text-rose-600 mt-1">
-                -{formatMoney(report.periode.total_sorties)} <span className="text-xs font-normal">FCFA</span>
+                -{formatMoney(report.periode.total_sorties)} <span className="text-xs font-normal">{user?.entreprise?.devise || 'FCFA'}</span>
               </p>
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-card bg-gradient-to-tr from-slate-900 to-slate-800 text-white">
               <span className="text-xs text-slate-300 font-semibold">= Solde de Clôture</span>
               <p className="text-base sm:text-lg font-extrabold text-emerald-400 mt-1">
-                {formatMoney(report.periode.solde_cloture)} <span className="text-xs font-normal text-white">FCFA</span>
+                {formatMoney(report.periode.solde_cloture)} <span className="text-xs font-normal text-white">{user?.entreprise?.devise || 'FCFA'}</span>
               </p>
             </div>
           </div>
@@ -218,7 +218,7 @@ export default function RapportsPage() {
                         {line.credit > 0 ? `-${formatMoney(line.credit)}` : '-'}
                       </td>
                       <td className="py-3 px-4 text-right font-extrabold text-slate-900 whitespace-nowrap">
-                        {formatMoney(line.solde_progressif)} FCFA
+                        {formatMoney(line.solde_progressif)} {user?.entreprise?.devise || 'FCFA'}
                       </td>
                     </tr>
                   ))}

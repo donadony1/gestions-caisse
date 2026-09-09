@@ -13,20 +13,24 @@ import {
   Receipt
 } from 'lucide-react';
 import { Movement } from '@/lib/types';
+import { api } from '@/lib/api';
 
 interface MovementsListProps {
   movements: Movement[];
   title?: string;
   showSearch?: boolean;
   onSelectMovement?: (movement: Movement) => void;
+  devise?: string;
 }
 
 export const MovementsList: React.FC<MovementsListProps> = ({
   movements = [],
   title = "Derniers Mouvements",
   showSearch = true,
-  onSelectMovement
+  onSelectMovement,
+  devise
 }) => {
+  const currentDevise = devise || api.getSavedUser()?.entreprise?.devise || 'FCFA';
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'entree' | 'sortie'>('all');
 
@@ -200,7 +204,7 @@ export const MovementsList: React.FC<MovementsListProps> = ({
                     }`}
                   >
                     {isEntree ? '+' : '-'} {formatMoney(item.montant)}{' '}
-                    <span className="text-[10px] sm:text-xs font-semibold text-slate-400">FCFA</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-slate-400">{currentDevise}</span>
                   </p>
                   <div className="mt-1">
                     {getStatusBadge(item.statut)}

@@ -139,7 +139,7 @@ export default function ControlePage() {
                       <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                         <span className="text-xs font-bold text-slate-500">{item.reference}</span>
                         <span className="text-lg font-extrabold text-rose-600">
-                          {formatMoney(item.montant)} FCFA
+                          {formatMoney(item.montant)} {user?.entreprise?.devise || 'FCFA'}
                         </span>
                       </div>
 
@@ -215,7 +215,7 @@ export default function ControlePage() {
                   </div>
 
                   <div className="text-right flex-shrink-0 ml-3">
-                    <p className="font-extrabold text-slate-900">{formatMoney(h.montant)} FCFA</p>
+                    <p className="font-extrabold text-slate-900">{formatMoney(h.montant)} {user?.entreprise?.devise || 'FCFA'}</p>
                     <span
                       className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         h.statut === 'valide'
@@ -241,6 +241,7 @@ export default function ControlePage() {
         mouvement={selectedMovement}
         onClose={() => setSelectedMovement(null)}
         onSuccess={loadValidations}
+        devise={user?.entreprise?.devise || 'FCFA'}
       />
     </div>
   );

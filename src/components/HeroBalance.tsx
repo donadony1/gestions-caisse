@@ -6,12 +6,14 @@ import { Financials } from '@/lib/types';
 
 interface HeroBalanceProps {
   financials: Financials | null;
+  devise?: string;
   onOpenEntreeModal: () => void;
   onOpenSortieModal: () => void;
 }
 
 export const HeroBalance: React.FC<HeroBalanceProps> = ({
   financials,
+  devise = 'FCFA',
   onOpenEntreeModal,
   onOpenSortieModal
 }) => {
@@ -51,7 +53,7 @@ export const HeroBalance: React.FC<HeroBalanceProps> = ({
 
             <button
               onClick={() => setShowAmount(!showAmount)}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
               title={showAmount ? "Masquer le montant" : "Afficher le montant"}
             >
               {showAmount ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -64,7 +66,7 @@ export const HeroBalance: React.FC<HeroBalanceProps> = ({
               {formatMoney(solde)}
             </h1>
             <span className="text-sm sm:text-lg font-bold text-emerald-400">
-              FCFA
+              {devise}
             </span>
           </div>
 
@@ -75,7 +77,7 @@ export const HeroBalance: React.FC<HeroBalanceProps> = ({
               <span>Couverture {financials?.taux_couverture ?? 100}%</span>
             </div>
             <span className="text-xs text-slate-400">
-              Mois : +{formatMoney(financials?.flux_net_mois)} FCFA
+              Mois : +{formatMoney(financials?.flux_net_mois)} {devise}
             </span>
           </div>
 
@@ -114,10 +116,10 @@ export const HeroBalance: React.FC<HeroBalanceProps> = ({
           </div>
           <div className="mt-2">
             <p className="text-base sm:text-xl font-bold text-slate-900">
-              +{formatMoney(entrees)} <span className="text-xs font-semibold text-emerald-600">FCFA</span>
+              +{formatMoney(entrees)} <span className="text-xs font-semibold text-emerald-600">{devise}</span>
             </p>
             <p className="text-[11px] text-emerald-600 mt-0.5">
-              Mois : +{formatMoney(financials?.entrees_mois)} FCFA
+              Mois : +{formatMoney(financials?.entrees_mois)} {devise}
             </p>
           </div>
         </div>
@@ -132,10 +134,10 @@ export const HeroBalance: React.FC<HeroBalanceProps> = ({
           </div>
           <div className="mt-2">
             <p className="text-base sm:text-xl font-bold text-slate-900">
-              -{formatMoney(sorties)} <span className="text-xs font-semibold text-rose-600">FCFA</span>
+              -{formatMoney(sorties)} <span className="text-xs font-semibold text-rose-600">{devise}</span>
             </p>
             <p className="text-[11px] text-rose-600 mt-0.5">
-              Mois : -{formatMoney(financials?.sorties_mois)} FCFA
+              Mois : -{formatMoney(financials?.sorties_mois)} {devise}
             </p>
           </div>
         </div>

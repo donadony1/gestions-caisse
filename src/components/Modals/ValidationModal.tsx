@@ -10,14 +10,17 @@ interface ValidationModalProps {
   mouvement: Movement | null;
   onClose: () => void;
   onSuccess: () => void;
+  devise?: string;
 }
 
 export const ValidationModal: React.FC<ValidationModalProps> = ({
   isOpen,
   mouvement,
   onClose,
-  onSuccess
+  onSuccess,
+  devise
 }) => {
+  const currentDevise = devise || api.getSavedUser()?.entreprise?.devise || 'FCFA';
   const [action, setAction] = useState<'approuver' | 'rejeter' | null>(null);
   const [motifRejet, setMotifRejet] = useState('');
   const [loading, setLoading] = useState(false);
@@ -88,7 +91,7 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500">Montant demandé</span>
               <span className="text-xl font-extrabold text-rose-600">
-                {formatMoney(mouvement.montant)} FCFA
+                {formatMoney(mouvement.montant)} {currentDevise}
               </span>
             </div>
 

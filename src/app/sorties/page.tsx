@@ -89,9 +89,9 @@ export default function SortiesPage() {
             <div>
               <h1 className="text-xl sm:text-2xl font-extrabold">Gestion des Décaissements</h1>
               <div className="flex items-center space-x-3 text-xs text-slate-300 mt-1">
-                <span>Validé : <b className="text-white">{formatMoney(summary?.total_valide)} FCFA</b></span>
+                <span>Validé : <b className="text-white">{formatMoney(summary?.total_valide)} {user?.entreprise?.devise || 'FCFA'}</b></span>
                 <span>•</span>
-                <span className="text-amber-300">En attente : <b className="text-amber-200">{formatMoney(summary?.total_en_attente)} FCFA</b></span>
+                <span className="text-amber-300">En attente : <b className="text-amber-200">{formatMoney(summary?.total_en_attente)} {user?.entreprise?.devise || 'FCFA'}</b></span>
               </div>
             </div>
           </div>
@@ -110,6 +110,7 @@ export default function SortiesPage() {
           movements={sorties}
           title="Historique des Dépenses & Décaissements"
           showSearch={true}
+          devise={user?.entreprise?.devise || 'FCFA'}
           onSelectMovement={(m) => {
             if (m.statut === 'en_attente' && (user?.role === 'admin' || user?.role === 'controleur')) {
               setSelectedMovement(m);
@@ -129,6 +130,8 @@ export default function SortiesPage() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={loadSorties}
         user={user}
+        categories={categories}
+        devise={user?.entreprise?.devise || 'FCFA'}
       />
 
       <ValidationModal
@@ -136,6 +139,7 @@ export default function SortiesPage() {
         mouvement={selectedMovement}
         onClose={() => setSelectedMovement(null)}
         onSuccess={loadSorties}
+        devise={user?.entreprise?.devise || 'FCFA'}
       />
     </div>
   );

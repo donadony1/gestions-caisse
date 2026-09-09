@@ -2,7 +2,7 @@
  * Client API HTTP avec gestion automatique des tokens JWT & requêtes backend (Compatible Vite & React)
  */
 
-import { ApiResponse, DashboardData, Movement, Category, ReportData, User } from './types';
+import { ApiResponse, DashboardData, Movement, Category, ReportData, User, RegisterData, SuperAdminData } from './types';
 
 // Récupération de l'URL du backend depuis le fichier .env (API_URL ou VITE_API_BASE_URL)
 const API_BASE_URL = 
@@ -75,7 +75,7 @@ class ApiClient {
       }));
 
       if (!response.ok) {
-        if (response.status === 401 && typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        if (response.status === 401 && typeof window !== 'undefined' && !window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
           this.clearToken();
           window.location.href = '/login';
         }
@@ -89,6 +89,63 @@ class ApiClient {
   }
 
   // --- Authentification ---
+  async register(data: RegisterData): Promise<{ requires_verification?: boolean; email: string; token?: string; user?: User; code_preview?: string }> {
+    const res = await this.request<any>('/auth/register.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (res.data?.token) {
+      this.setToken(res.data.token);
+      this.setSavedUser(res.data.user);
+    }
+
+    return res.data!;
+  }
+
+  async verifyEmail(email: string, code?: string, token?: string): Promise<{ token: string; user: User }> {
+    const res = await this.request<{ token: string; user: User }>('/auth/verify_email.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, token }),
+    });
+
+    if (res.data?.token) {
+      this.setToken(res.data.token);
+      this.setSavedUser(res.data.user);
+    }
+
+    return res.data!;
+  }
+
+  async resendVerification(email: string): Promise<any> {
+    const res = await this.request('/auth/resend_verification.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    return res.data;
+  }
+
+  async forgotPassword(email: string): Promise<any> {
+    const res = await this.request('/auth/forgot_password.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    return res.data;
+  }
+
+  async resetPassword(email: string, password: string, code?: string, token?: string): Promise<any> {
+    const res = await this.request('/auth/reset_password.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, code, token }),
+    });
+    return res.data;
+  }
+
   async login(email: string, password: string): Promise<{ token: string; user: User }> {
     const res = await this.request<{ token: string; user: User }>('/auth/login.php', {
       method: 'POST',
@@ -271,6 +328,30 @@ class ApiClient {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, actif }),
+    });
+    return res.data;
+  }
+
+  // --- Espace Super-Admin (Gestion Globale SaaS) ---
+  async getSuperAdminData(): Promise<SuperAdminData> {
+    const res = await this.request<SuperAdminData>('/superadmin.php');
+    return res.data!;
+  }
+
+  async updateEntreprisePlan(entrepriseId: number, plan: 'gratuit' | 'pro' | 'enterprise'): Promise<any> {
+    const res = await this.request('/superadmin.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_plan', entreprise_id: entrepriseId, plan }),
+    });
+    return res.data;
+  }
+
+  async toggleEntrepriseStatus(entrepriseId: number): Promise<any> {
+    const res = await this.request('/superadmin.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'toggle_status', entreprise_id: entrepriseId }),
     });
     return res.data;
   }
