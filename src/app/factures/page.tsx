@@ -294,96 +294,166 @@ export default function FacturesPage() {
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200/80">
-                  <tr>
-                    <th className="p-4">N° Facture & Date</th>
-                    <th className="p-4">Client & Coordonnées</th>
-                    <th className="p-4">Service Rendu</th>
-                    <th className="p-4 text-right">Montant</th>
-                    <th className="p-4 text-center">Statut</th>
-                    <th className="p-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {facturesData.items.map((facture) => (
-                    <tr key={facture.id} className="hover:bg-slate-50/70 transition">
-                      
-                      {/* N° & Date */}
-                      <td className="p-4 align-top">
-                        <span className="font-mono font-bold text-slate-900 block text-xs">
-                          {facture.numero_facture}
-                        </span>
-                        <span className="text-[11px] text-slate-400 mt-0.5 block">
-                          {new Date(facture.date_facture).toLocaleDateString('fr-FR')}
-                        </span>
-                      </td>
+          <div className="space-y-4">
+            
+            {/* Version Cartes pour Mobile (< md) */}
+            <div className="grid grid-cols-1 gap-3.5 md:hidden">
+              {facturesData.items.map((facture) => (
+                <div
+                  key={facture.id}
+                  className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-mono font-black text-slate-900 text-sm">
+                        {facture.numero_facture}
+                      </span>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                        📅 {new Date(facture.date_facture).toLocaleDateString('fr-FR')}
+                      </span>
+                    </div>
 
-                      {/* Client */}
-                      <td className="p-4 align-top">
-                        <span className="font-bold text-slate-800 block text-xs">
-                          {facture.client_nom}
-                        </span>
-                        {facture.client_telephone && (
-                          <span className="text-[11px] text-slate-500 block">
-                            📞 {facture.client_telephone}
-                          </span>
-                        )}
-                        {facture.client_localisation && (
-                          <span className="text-[10px] text-slate-400 block">
-                            📍 {facture.client_localisation}
-                          </span>
-                        )}
-                      </td>
+                    {facture.statut === 'paye' ? (
+                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>Payée</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        <Clock className="w-3 h-3 text-amber-600" />
+                        <span>En attente</span>
+                      </span>
+                    )}
+                  </div>
 
-                      {/* Service */}
-                      <td className="p-4 align-top max-w-xs">
-                        <p className="text-xs text-slate-700 line-clamp-2">
-                          {facture.service_rendu}
-                        </p>
-                      </td>
+                  <div className="bg-slate-50 p-3 rounded-xl space-y-1">
+                    <p className="text-xs font-bold text-slate-900">
+                      👤 {facture.client_nom}
+                    </p>
+                    {facture.client_telephone && (
+                      <p className="text-[11px] text-slate-500">
+                        📞 {facture.client_telephone}
+                      </p>
+                    )}
+                    <p className="text-xs text-slate-600 pt-1 line-clamp-2">
+                      {facture.service_rendu}
+                    </p>
+                  </div>
 
-                      {/* Montant */}
-                      <td className="p-4 align-top text-right font-mono font-bold text-xs text-slate-900">
-                        {formatMoney(facture.montant)} {devise}
-                      </td>
+                  <div className="flex items-center justify-between pt-1">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Montant</span>
+                      <span className="text-base font-black font-mono text-slate-900">
+                        {formatMoney(facture.montant)} <span className="text-xs text-slate-500">{devise}</span>
+                      </span>
+                    </div>
 
-                      {/* Statut */}
-                      <td className="p-4 align-top text-center">
-                        {facture.statut === 'paye' ? (
-                          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>Payée</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                            <Clock className="w-3 h-3 text-amber-600" />
-                            <span>En attente</span>
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="p-4 align-top text-right">
-                        <div className="flex items-center justify-end space-x-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenView(facture)}
-                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 transition"
-                            title="Voir & Imprimer"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenView(facture)}
+                      className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm shadow-indigo-600/20 active:scale-95"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Voir & Imprimer</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
+
+            {/* Version Tableau pour Tablettes & Ordinateurs (>= md) */}
+            <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200/80">
+                    <tr>
+                      <th className="p-4">N° Facture & Date</th>
+                      <th className="p-4">Client & Coordonnées</th>
+                      <th className="p-4">Service Rendu</th>
+                      <th className="p-4 text-right">Montant</th>
+                      <th className="p-4 text-center">Statut</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {facturesData.items.map((facture) => (
+                      <tr key={facture.id} className="hover:bg-slate-50/70 transition">
+                        
+                        {/* N° & Date */}
+                        <td className="p-4 align-top">
+                          <span className="font-mono font-bold text-slate-900 block text-xs">
+                            {facture.numero_facture}
+                          </span>
+                          <span className="text-[11px] text-slate-400 mt-0.5 block">
+                            {new Date(facture.date_facture).toLocaleDateString('fr-FR')}
+                          </span>
+                        </td>
+
+                        {/* Client */}
+                        <td className="p-4 align-top">
+                          <span className="font-bold text-slate-800 block text-xs">
+                            {facture.client_nom}
+                          </span>
+                          {facture.client_telephone && (
+                            <span className="text-[11px] text-slate-500 block">
+                              📞 {facture.client_telephone}
+                            </span>
+                          )}
+                          {facture.client_localisation && (
+                            <span className="text-[10px] text-slate-400 block">
+                              📍 {facture.client_localisation}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Service */}
+                        <td className="p-4 align-top max-w-xs">
+                          <p className="text-xs text-slate-700 line-clamp-2">
+                            {facture.service_rendu}
+                          </p>
+                        </td>
+
+                        {/* Montant */}
+                        <td className="p-4 align-top text-right font-mono font-bold text-xs text-slate-900">
+                          {formatMoney(facture.montant)} {devise}
+                        </td>
+
+                        {/* Statut */}
+                        <td className="p-4 align-top text-center">
+                          {facture.statut === 'paye' ? (
+                            <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Payée</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              <span>En attente</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="p-4 align-top text-right">
+                          <div className="flex items-center justify-end space-x-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenView(facture)}
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 transition"
+                              title="Voir & Imprimer"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
         )}
 

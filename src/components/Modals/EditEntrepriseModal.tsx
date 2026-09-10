@@ -142,10 +142,10 @@ export const EditEntrepriseModal: React.FC<EditEntrepriseModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden transform transition-all">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden transform transition-all max-h-[90vh] flex flex-col">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-6 py-5 text-white flex items-center justify-between">
+        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-6 py-5 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20">
               <Building2 className="w-5 h-5 text-white" />
@@ -170,7 +170,7 @@ export const EditEntrepriseModal: React.FC<EditEntrepriseModalProps> = ({
 
         {/* Content */}
         {!isAuthorized ? (
-          <div className="p-8 text-center">
+          <div className="p-8 text-center overflow-y-auto">
             <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
               <AlertCircle className="w-6 h-6" />
             </div>
@@ -191,7 +191,7 @@ export const EditEntrepriseModal: React.FC<EditEntrepriseModalProps> = ({
             <p className="text-sm font-medium text-slate-500">Chargement des données...</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
             {error && (
               <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-start space-x-2.5">
                 <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
