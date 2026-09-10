@@ -11,6 +11,7 @@ export interface Entreprise {
   devise: string;
   plan: 'gratuit' | 'pro' | 'enterprise';
   telephone?: string | null;
+  localisation?: string | null;
   logo_url?: string | null;
   actif?: number | boolean;
 }
@@ -188,3 +189,55 @@ export interface ReportData {
   lignes: ReportRow[];
   count: number;
 }
+
+// --- Module Facturation (Invoicing) ---
+export type FactureStatus = 'paye' | 'en_attente' | 'annule';
+
+export interface Facture {
+  id: number;
+  entreprise_id: number;
+  numero_facture: string;
+  client_nom: string;
+  client_telephone?: string | null;
+  client_localisation?: string | null;
+  service_rendu: string;
+  montant: number;
+  statut: FactureStatus;
+  date_facture: string;
+  date_echeance?: string | null;
+  mode_paiement: PaymentMethod;
+  mouvement_id?: number | null;
+  mouvement_reference?: string | null;
+  created_by: number;
+  createur_nom?: string | null;
+  createur_prenom?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  entreprise_nom?: string | null;
+  entreprise_devise?: string | null;
+  entreprise_telephone?: string | null;
+  entreprise_localisation?: string | null;
+  entreprise_logo?: string | null;
+}
+
+export interface FactureQuota {
+  plan: 'gratuit' | 'pro' | 'enterprise';
+  total_factures: number;
+  max_factures: number | null;
+  is_limit_reached: boolean;
+  remaining: number | null;
+}
+
+export interface FacturesResponse {
+  items: Facture[];
+  summary: {
+    total_facture: number;
+    total_paye: number;
+    total_en_attente: number;
+    count: number;
+    total_count: number;
+  };
+  quota: FactureQuota;
+}
+

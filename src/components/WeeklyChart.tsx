@@ -9,13 +9,22 @@ interface WeeklyChartProps {
 }
 
 export const WeeklyChart: React.FC<WeeklyChartProps> = ({ flows = [] }) => {
+  // Garantir toujours 4 semaines affichées
+  const displayFlows = flows.length >= 4 ? flows : [
+    { label: 'S-3', entrees: 0, sorties: 0, net: 0 },
+    { label: 'S-2', entrees: 0, sorties: 0, net: 0 },
+    { label: 'S-1', entrees: 0, sorties: 0, net: 0 },
+    { label: 'En cours', entrees: 0, sorties: 0, net: 0 },
+  ];
+
   // Trouver le montant maximum pour dimensionner les barres proportionnellement
   const maxAmount = Math.max(
-    ...flows.map((f) => Math.max(f.entrees, f.sorties)),
+    ...displayFlows.map((f) => Math.max(f.entrees || 0, f.sorties || 0)),
     100000
   );
 
   const formatShort = (amount: number) => {
+    if (!amount) return '0';
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
     if (amount >= 1000) return `${(amount / 1000).toFixed(0)}k`;
     return amount.toString();
@@ -51,10 +60,10 @@ export const WeeklyChart: React.FC<WeeklyChartProps> = ({ flows = [] }) => {
 
       {/* Barres du graphique */}
       <div className="grid grid-cols-4 gap-3 sm:gap-6 items-end h-44 sm:h-48 pt-4 pb-2 border-b border-slate-100">
-        {flows.map((item, idx) => {
-          const entreeHeight = Math.max(8, Math.round((item.entrees / maxAmount) * 100));
-          const sortieHeight = Math.max(8, Math.round((item.sorties / maxAmount) * 100));
-          const isCurrent = idx === flows.length - 1;
+        {displayFlows.map((item, idx) => {
+          const entreeHeight = Math.max(8, Math.round(((item.entrees || 0) / maxAmount) * 100));
+          const sortieHeight = Math.max(8, Math.round(((item.sorties || 0) / maxAmount) * 100));
+          const isCurrent = idx === displayFlows.length - 1;
 
           return (
             <div key={idx} className="flex flex-col items-center h-full justify-end group">

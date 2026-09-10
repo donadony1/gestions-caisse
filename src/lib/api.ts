@@ -2,7 +2,7 @@
  * Client API HTTP avec gestion automatique des tokens JWT & requêtes backend (Compatible Vite & React)
  */
 
-import { ApiResponse, DashboardData, Movement, Category, ReportData, User, RegisterData, SuperAdminData } from './types';
+import { ApiResponse, DashboardData, Movement, Category, ReportData, User, RegisterData, SuperAdminData, Entreprise, Facture, FacturesResponse } from './types';
 
 function getApiBaseUrl(): string {
   const envUrl = 
@@ -358,6 +358,128 @@ class ApiClient {
     return res.data;
   }
 
+  // --- Gestion de l'Entreprise (Admin & Contrôleur) ---
+  async getEntreprise(): Promise<Entreprise> {
+    const res = await this.request<Entreprise>('/entreprise.php');
+    return res.data!;
+  }
+
+  async updateEntreprise(formData: FormData): Promise<Entreprise> {
+    const token = this.getToken();
+    const headers: Record<string, string> = {
+      Accept: 'application/json'
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/entreprise.php`, {
+      method: 'POST',
+      mode: 'cors',
+      headers,
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => ({
+      status: 'error',
+      message: "Erreur lors de la mise à jour des informations de l'entreprise"
+    }));
+
+    if (!res.ok) throw new Error(data.message || "Erreur lors de la mise à jour de l'entreprise");
+    
+    // Mettre à jour l'utilisateur local si les infos entreprise ont changé
+    const currentUser = this.getSavedUser();
+    if (currentUser && data.data) {
+      currentUser.entreprise = {
+        ...currentUser.entreprise,
+        ...data.data,
+      };
+      this.setSavedUser(currentUser);
+    }
+
+    return data.data;
+  }
+
+  // --- Gestion du Profil Utilisateur (Tout utilisateur) ---
+  async updateProfile(formData: FormData): Promise<{ user: User; token?: string }> {
+    const token = this.getToken();
+    const headers: Record<string, string> = {
+      Accept: 'application/json'
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const baseUrl = getApiBaseUrl();
+    const res = await fetch(`${baseUrl}/profile.php`, {
+      method: 'POST',
+      mode: 'cors',
+      headers,
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => ({
+      status: 'error',
+      message: "Erreur lors de la mise à jour du profil"
+    }));
+
+    if (!res.ok) throw new Error(data.message || "Erreur lors de la mise à jour du profil");
+
+    if (data.data?.user) {
+      this.setSavedUser(data.data.user);
+    }
+    if (data.data?.token) {
+      this.setToken(data.data.token);
+    }
+
+    return data.data;
+  }
+
+  // --- Module Facturation (Factures Clients) ---
+  async getFactures(params?: { search?: string; statut?: string; date_debut?: string; date_fin?: string; limit?: number; offset?: number }): Promise<FacturesResponse> {
+    const query = new URLSearchParams();
+    if (params?.search) query.append('search', params.search);
+    if (params?.statut) query.append('statut', params.statut);
+    if (params?.date_debut) query.append('date_debut', params.date_debut);
+    if (params?.date_fin) query.append('date_fin', params.date_fin);
+    if (params?.limit) query.append('limit', params.limit.toString());
+    if (params?.offset) query.append('offset', params.offset.toString());
+
+    const res = await this.request<FacturesResponse>(`/factures.php?${query.toString()}`);
+    return res.data!;
+  }
+
+  async getFacture(id: number): Promise<Facture> {
+    const res = await this.request<Facture>(`/factures.php?id=${id}`);
+    return res.data!;
+  }
+
+  async createFacture(data: {
+    client_nom: string;
+    client_telephone?: string;
+    client_localisation?: string;
+    service_rendu: string;
+    montant: number;
+    statut?: 'paye' | 'en_attente';
+    date_facture?: string;
+    date_echeance?: string;
+    mode_paiement?: string;
+    notes?: string;
+  }): Promise<Facture> {
+    const res = await this.request<Facture>('/factures.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.data!;
+  }
+
+  async markFactureAsPaid(id: number, mode_paiement?: string): Promise<Facture> {
+    const res = await this.request<Facture>('/factures.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'mark_paid', id, mode_paiement }),
+    });
+    return res.data!;
+  }
+
   // --- Espace Super-Admin (Gestion Globale SaaS) ---
   async getSuperAdminData(): Promise<SuperAdminData> {
     const res = await this.request<SuperAdminData>('/superadmin.php');
@@ -384,4 +506,5 @@ class ApiClient {
 }
 
 export const api = new ApiClient();
+
 

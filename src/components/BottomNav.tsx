@@ -103,9 +103,23 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               </div>
               <div className="text-left">
                 <p className="text-sm font-bold">Demander un décaissement</p>
-                <p className="text-xs text-rose-600">Dépenses, factures, carburant, achats</p>
+                <p className="text-xs text-rose-600">Dépenses, factures fournisseurs, achats</p>
               </div>
             </button>
+
+            <Link
+              to="/factures"
+              onClick={() => setShowFabMenu(false)}
+              className="w-full flex items-center space-x-3 p-3.5 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-800 transition-colors"
+            >
+              <div className="p-2.5 rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/30">
+                <FileSpreadsheet className="w-5 h-5" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold">Gérer les Factures Clients</p>
+                <p className="text-xs text-blue-600">Émettre, imprimer & encaisser des factures</p>
+              </div>
+            </Link>
           </div>
         </div>
       )}

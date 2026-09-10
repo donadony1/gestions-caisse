@@ -7,8 +7,10 @@ import { MovementsList } from '@/components/MovementsList';
 import { BottomNav } from '@/components/BottomNav';
 import { AddEntreeModal } from '@/components/Modals/AddEntreeModal';
 import { AddSortieModal } from '@/components/Modals/AddSortieModal';
+import { AddFactureModal } from '@/components/Modals/AddFactureModal';
+import { ViewFactureModal } from '@/components/Modals/ViewFactureModal';
 import { ValidationModal } from '@/components/Modals/ValidationModal';
-import { DashboardData, Movement, User, Category } from '@/lib/types';
+import { DashboardData, Movement, User, Category, Facture, FactureQuota } from '@/lib/types';
 import { api } from '@/lib/api';
 import { Loader2, AlertCircle } from 'lucide-react';
 
@@ -23,6 +25,10 @@ export default function DashboardPage() {
   // Modales
   const [isEntreeModalOpen, setIsEntreeModalOpen] = useState(false);
   const [isSortieModalOpen, setIsSortieModalOpen] = useState(false);
+  const [isFactureModalOpen, setIsFactureModalOpen] = useState(false);
+  const [selectedFacture, setSelectedFacture] = useState<Facture | null>(null);
+  const [isViewFactureOpen, setIsViewFactureOpen] = useState(false);
+  const [autoPrintFacture, setAutoPrintFacture] = useState(false);
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
 
   const loadData = async () => {
@@ -108,6 +114,7 @@ export default function DashboardPage() {
               devise={user?.entreprise?.devise || 'FCFA'}
               onOpenEntreeModal={() => setIsEntreeModalOpen(true)}
               onOpenSortieModal={() => setIsSortieModalOpen(true)}
+              onOpenFactureModal={() => setIsFactureModalOpen(true)}
             />
 
             <WeeklyChart flows={data?.weekly_flows || []} />
@@ -155,6 +162,29 @@ export default function DashboardPage() {
         user={user}
         categories={categories}
         devise={user?.entreprise?.devise || 'FCFA'}
+      />
+
+      <AddFactureModal
+        isOpen={isFactureModalOpen}
+        onClose={() => setIsFactureModalOpen(false)}
+        currentUser={user}
+        onSuccess={(created) => {
+          loadData();
+          setSelectedFacture(created);
+          setAutoPrintFacture(true);
+          setIsViewFactureOpen(true);
+        }}
+      />
+
+      <ViewFactureModal
+        isOpen={isViewFactureOpen}
+        onClose={() => {
+          setIsViewFactureOpen(false);
+          setAutoPrintFacture(false);
+        }}
+        facture={selectedFacture}
+        autoPrint={autoPrintFacture}
+        onFactureUpdated={() => loadData()}
       />
 
       <ValidationModal
