@@ -74,6 +74,10 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ user, pendingCount = 0, on
                   src={user.avatar_url}
                   alt={user.nom}
                   className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-emerald-500 shadow-sm group-hover:scale-105 transition-transform"
+                  onError={(e) => {
+                    // Cacher l'image brisée et afficher les initiales
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
                 />
               ) : (
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-400 text-white font-semibold flex items-center justify-center text-xs sm:text-sm shadow-sm group-hover:scale-105 transition-transform">
@@ -103,16 +107,38 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ user, pendingCount = 0, on
                     <button
                       type="button"
                       onClick={() => setIsEntrepriseModalOpen(true)}
-                      className="hidden md:inline-flex items-center space-x-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full transition cursor-pointer"
+                      className="hidden md:inline-flex items-center space-x-1.5 text-[10px] font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full transition cursor-pointer"
                       title="Modifier les informations de l'entreprise (Admin & Contrôleur)"
                     >
-                      <Building2 className="w-3 h-3 text-emerald-600" />
+                      {user.entreprise.logo_url ? (
+                        <img
+                          src={user.entreprise.logo_url}
+                          alt={user.entreprise.nom}
+                          className="w-4 h-4 rounded-full object-cover shrink-0 border border-emerald-300"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Building2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                      )}
                       <span className="max-w-[140px] truncate">{user.entreprise.nom}</span>
-                      <Settings className="w-2.5 h-2.5 text-emerald-500 ml-0.5" />
+                      <Settings className="w-2.5 h-2.5 text-emerald-500 ml-0.5 shrink-0" />
                     </button>
                   ) : (
-                    <span className="hidden md:inline-flex items-center space-x-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                      <Building2 className="w-3 h-3 text-emerald-600" />
+                    <span className="hidden md:inline-flex items-center space-x-1.5 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      {user.entreprise.logo_url ? (
+                        <img
+                          src={user.entreprise.logo_url}
+                          alt={user.entreprise.nom}
+                          className="w-4 h-4 rounded-full object-cover shrink-0 border border-emerald-300"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Building2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                      )}
                       <span className="max-w-[140px] truncate">{user.entreprise.nom}</span>
                     </span>
                   )

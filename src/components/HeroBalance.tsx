@@ -81,33 +81,24 @@ export const HeroBalance: React.FC<HeroBalanceProps> = ({
             </span>
           </div>
 
-          {/* Boutons d'action rapide (3 boutons sur la même ligne) */}
-          <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3 pt-4 border-t border-slate-800">
+          {/* Boutons d'action rapide (Encaissement & Décaissement) */}
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 pt-4 border-t border-slate-800">
             <button
               onClick={onOpenEntreeModal}
-              className="flex items-center justify-center space-x-1 sm:space-x-2 py-3 px-2 sm:px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-900/40 transition-all"
+              className="flex items-center justify-center space-x-2 py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-900/40 transition-all cursor-pointer"
               title="Encaisser de l'argent"
             >
               <Plus className="w-4 h-4 shrink-0" />
-              <span className="truncate">Encaissement</span>
+              <span>Encaissement</span>
             </button>
 
             <button
               onClick={onOpenSortieModal}
-              className="flex items-center justify-center space-x-1 sm:space-x-2 py-3 px-2 sm:px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-rose-300 border border-rose-500/20 text-xs sm:text-sm font-bold shadow-md transition-all"
+              className="flex items-center justify-center space-x-2 py-3.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-rose-300 border border-rose-500/20 text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer"
               title="Demander un décaissement"
             >
               <Minus className="w-4 h-4 shrink-0" />
-              <span className="truncate">Décaissement</span>
-            </button>
-
-            <button
-              onClick={onOpenFactureModal}
-              className="flex items-center justify-center space-x-1 sm:space-x-2 py-3 px-2 sm:px-4 rounded-2xl bg-indigo-600/90 hover:bg-indigo-600 active:scale-[0.98] text-indigo-100 border border-indigo-400/30 text-xs sm:text-sm font-bold shadow-lg shadow-indigo-900/40 transition-all"
-              title="Émettre une facture client"
-            >
-              <FileText className="w-4 h-4 shrink-0 text-indigo-200" />
-              <span className="truncate">Facture</span>
+              <span>Décaissement</span>
             </button>
           </div>
 
