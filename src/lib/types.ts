@@ -141,6 +141,7 @@ export interface DashboardData {
     amount: number;
   };
   weekly_flows: WeeklyFlow[];
+  weekly_flow?: WeeklyFlow[];
   recent_movements: Movement[];
   category_distribution: Array<{
     nom: string;
