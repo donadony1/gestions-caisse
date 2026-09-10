@@ -22,8 +22,6 @@ export const AddEntreeModal: React.FC<AddEntreeModalProps> = ({
 }) => {
   const currentDevise = devise || api.getSavedUser()?.entreprise?.devise || 'FCFA';
   const [montant, setMontant] = useState('');
-  const [motif, setMotif] = useState('');
-  const [payeur, setPayeur] = useState('');
   const [categorieId, setCategorieId] = useState('');
   const [modePaiement, setModePaiement] = useState('especes');
   const [dateMouvement, setDateMouvement] = useState(new Date().toISOString().split('T')[0]);
@@ -43,17 +41,17 @@ export const AddEntreeModal: React.FC<AddEntreeModalProps> = ({
       setError('Veuillez saisir un montant valide.');
       return;
     }
-    if (!motif.trim()) {
-      setError('Le motif est obligatoire.');
-      return;
-    }
+
+    const selectedCategory = categories.find((c) => c.id.toString() === categorieId.toString());
+    const motifLibelle = selectedCategory ? selectedCategory.nom : 'Encaissement de caisse';
 
     try {
       setLoading(true);
       const formData = new FormData();
       formData.append('montant', numMontant.toString());
-      formData.append('motif', motif.trim());
-      formData.append('payeur', payeur.trim() || 'Client / Dépositaire');
+      formData.append('motif', motifLibelle);
+      formData.append('description', motifLibelle);
+      formData.append('payeur', 'Client / Dépositaire');
       if (categorieId) formData.append('categorie_id', categorieId);
       formData.append('mode_paiement', modePaiement);
       formData.append('date_mouvement', dateMouvement);
@@ -66,11 +64,10 @@ export const AddEntreeModal: React.FC<AddEntreeModalProps> = ({
       onClose();
       // Reset
       setMontant('');
-      setMotif('');
-      setPayeur('');
+      setCategorieId('');
       setFile(null);
     } catch (err: any) {
-      setError(err.message || "Erreur lors de l'enregistrement");
+      setError(err.message || "Erreur lors de l'enregistrement de l'encaissement");
     } finally {
       setLoading(false);
     }
@@ -83,7 +80,7 @@ export const AddEntreeModal: React.FC<AddEntreeModalProps> = ({
         {/* En-tête */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-emerald-50/50">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-emerald-600 text-white">
+            <div className="p-2 rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20">
               <ArrowDownLeft className="w-5 h-5" />
             </div>
             <div>
@@ -93,7 +90,7 @@ export const AddEntreeModal: React.FC<AddEntreeModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+            className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -130,47 +127,19 @@ export const AddEntreeModal: React.FC<AddEntreeModalProps> = ({
             </div>
           </div>
 
-          {/* Motif */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Motif / Libellé de l'opération *
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Ex: Ventes journée boutique, règlement facture..."
-              value={motif}
-              onChange={(e) => setMotif(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-            />
-          </div>
-
-          {/* Payeur / Client */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-              Payeur / Client / Dépositaire
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: Société Alpha, Client comptant..."
-              value={payeur}
-              onChange={(e) => setPayeur(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-            />
-          </div>
-
-          {/* Catégorie & Mode de paiement */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Motif / Libellé de l'opération (remplaçant la catégorie) & Mode de règlement */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Catégorie
+                Motif / Libellé de l'opération *
               </label>
               <select
+                required
                 value={categorieId}
                 onChange={(e) => setCategorieId(e.target.value)}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               >
-                <option value="">Sélectionner...</option>
+                <option value="">Sélectionner un motif...</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nom}
@@ -229,18 +198,18 @@ export const AddEntreeModal: React.FC<AddEntreeModalProps> = ({
           </div>
 
           {/* Boutons d'action */}
-          <div className="pt-4 flex items-center justify-end space-x-3">
+          <div className="pt-4 flex items-center justify-end space-x-3 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50"
+              className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 cursor-pointer"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-bold shadow-lg shadow-emerald-600/30 flex items-center space-x-2"
+              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-bold shadow-lg shadow-emerald-600/30 flex items-center space-x-2 cursor-pointer"
             >
               {loading ? (
                 <span>Enregistrement...</span>
