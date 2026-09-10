@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Printer, CheckCircle2, Clock, Building2, Phone, MapPin, DollarSign, Calendar, CreditCard, Sparkles, Loader2 } from 'lucide-react';
+import { X, Printer, Download, CheckCircle2, Clock, Building2, Phone, MapPin, DollarSign, Calendar, CreditCard, Sparkles, Loader2 } from 'lucide-react';
 import { Facture } from '@/lib/types';
 import { api } from '@/lib/api';
 
@@ -11,21 +11,8 @@ interface ViewFactureModalProps {
   onFactureUpdated?: (updated: Facture) => void;
 }
 
-// Fonction d'impression 100% isolée pour garantir l'impression d'UNE SEULE facture client
-export function printSingleFacture(facture: Facture) {
-  const existingFrame = document.getElementById('print-facture-iframe');
-  if (existingFrame) existingFrame.remove();
-
-  const iframe = document.createElement('iframe');
-  iframe.id = 'print-facture-iframe';
-  iframe.style.position = 'fixed';
-  iframe.style.top = '-9999px';
-  iframe.style.left = '-9999px';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = 'none';
-  document.body.appendChild(iframe);
-
+// Fonction de génération du code HTML de la facture
+export function generateFactureHtml(facture: Facture): string {
   const devise = facture.entreprise_devise || 'FCFA';
   const formatMoney = (val: number) => new Intl.NumberFormat('fr-FR').format(val || 0);
 
@@ -36,7 +23,7 @@ export function printSingleFacture(facture: Facture) {
     ? new Date(facture.date_echeance).toLocaleDateString('fr-FR') 
     : '';
 
-  const html = `
+  return `
     <!DOCTYPE html>
     <html lang="fr">
     <head>
@@ -352,7 +339,39 @@ export function printSingleFacture(facture: Facture) {
     </body>
     </html>
   `;
+}
 
+// Téléchargement direct du fichier facture officiel (.html auto-imprimable / conservable)
+export function downloadSingleFacture(facture: Facture) {
+  const html = generateFactureHtml(facture);
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  const safeClient = (facture.client_nom || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
+  link.download = `Facture_${facture.numero_facture}_${safeClient}.html`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// Fonction d'impression 100% isolée pour garantir l'impression d'UNE SEULE facture client
+export function printSingleFacture(facture: Facture) {
+  const existingFrame = document.getElementById('print-facture-iframe');
+  if (existingFrame) existingFrame.remove();
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'print-facture-iframe';
+  iframe.style.position = 'fixed';
+  iframe.style.top = '-9999px';
+  iframe.style.left = '-9999px';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = 'none';
+  document.body.appendChild(iframe);
+
+  const html = generateFactureHtml(facture);
   const doc = iframe.contentWindow?.document || iframe.contentDocument;
   if (doc) {
     doc.open();
@@ -400,6 +419,12 @@ export const ViewFactureModal: React.FC<ViewFactureModalProps> = ({
     }
   };
 
+  const handleDownload = () => {
+    if (currentFacture) {
+      downloadSingleFacture(currentFacture);
+    }
+  };
+
   const handleMarkAsPaid = async () => {
     if (!confirm(`Confirmer le règlement de la facture ${currentFacture.numero_facture} ? Le montant sera automatiquement ajouté aux entrées de caisse.`)) {
       return;
@@ -427,19 +452,19 @@ export const ViewFactureModal: React.FC<ViewFactureModalProps> = ({
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border border-slate-100 overflow-hidden transform transition-all my-auto max-h-[92vh] flex flex-col print:shadow-none print:border-none print:max-h-none print:w-full print:rounded-none print:block">
         
         {/* Barre d'action supérieure (non imprimée) */}
-        <div className="print:hidden bg-slate-900 px-6 py-4 text-white flex items-center justify-between shrink-0">
+        <div className="print:hidden bg-slate-900 px-6 py-4 text-white flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center space-x-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Facture Client</span>
             <span className="text-sm font-black text-white">{currentFacture.numero_facture}</span>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center flex-wrap gap-2">
             {currentFacture.statut === 'en_attente' && (
               <button
                 type="button"
                 onClick={handleMarkAsPaid}
                 disabled={loadingPay}
-                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-emerald-600/30 disabled:opacity-50"
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-emerald-600/30 disabled:opacity-50 cursor-pointer"
               >
                 {loadingPay ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                 <span>Marquer comme payée</span>
@@ -449,17 +474,28 @@ export const ViewFactureModal: React.FC<ViewFactureModalProps> = ({
             <button
               type="button"
               onClick={handlePrint}
-              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-indigo-600/30"
-              title="Imprimer ou enregistrer en PDF"
+              className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition flex items-center space-x-1.5 border border-slate-700 shadow-sm cursor-pointer"
+              title="Lancer l'impression"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Imprimer / PDF</span>
+              <Printer className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Imprimer</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 cursor-pointer active:scale-95"
+              title="Télécharger la facture sur votre appareil"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Téléchargement de la facture</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition text-white ml-2"
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition text-white ml-1 cursor-pointer"
+              title="Fermer"
             >
               <X className="w-4 h-4" />
             </button>

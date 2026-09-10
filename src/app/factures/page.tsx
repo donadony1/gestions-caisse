@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TopHeader } from '@/components/TopHeader';
 import { BottomNav } from '@/components/BottomNav';
 import { AddFactureModal } from '@/components/Modals/AddFactureModal';
-import { ViewFactureModal } from '@/components/Modals/ViewFactureModal';
+import { ViewFactureModal, downloadSingleFacture } from '@/components/Modals/ViewFactureModal';
 import { User, Facture, FacturesResponse, FactureQuota } from '@/lib/types';
 import { api } from '@/lib/api';
 import { 
@@ -14,6 +14,7 @@ import {
   Clock, 
   DollarSign, 
   Printer, 
+  Download,
   Eye, 
   Crown, 
   ArrowUpRight, 
@@ -348,14 +349,27 @@ export default function FacturesPage() {
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleOpenView(facture)}
-                      className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm shadow-indigo-600/20 active:scale-95"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Voir & Imprimer</span>
-                    </button>
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenView(facture)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center space-x-1"
+                        title="Imprimer ou consulter la facture"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Imprimer</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => downloadSingleFacture(facture)}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center space-x-1 shadow-sm shadow-indigo-600/20 active:scale-95"
+                        title="Télécharger la facture"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Télécharger</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -439,10 +453,21 @@ export default function FacturesPage() {
                             <button
                               type="button"
                               onClick={() => handleOpenView(facture)}
-                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 transition"
-                              title="Voir & Imprimer"
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 transition flex items-center space-x-1 font-semibold"
+                              title="Voir et Imprimer la facture"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Printer className="w-3.5 h-3.5 text-slate-600" />
+                              <span className="hidden lg:inline">Imprimer</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => downloadSingleFacture(facture)}
+                              className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition flex items-center space-x-1 border border-indigo-200/80 shadow-2xs active:scale-95"
+                              title="Téléchargement de la facture"
+                            >
+                              <Download className="w-3.5 h-3.5 text-indigo-600" />
+                              <span className="hidden sm:inline">Télécharger</span>
                             </button>
                           </div>
                         </td>
