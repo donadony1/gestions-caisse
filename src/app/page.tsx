@@ -117,7 +117,7 @@ export default function DashboardPage() {
               onOpenFactureModal={() => setIsFactureModalOpen(true)}
             />
 
-            <WeeklyChart flows={data?.weekly_flows || []} />
+            <WeeklyChart flows={data?.weekly_flows || data?.weekly_flow || []} />
           </div>
 
           {/* Colonne Droite : Mouvements Récents */}
