@@ -2,7 +2,7 @@
  * Client API HTTP avec gestion automatique des tokens JWT & requêtes backend (Compatible Vite & React)
  */
 
-import { ApiResponse, DashboardData, Movement, Category, ReportData, User, RegisterData, SuperAdminData, Entreprise, Facture, FacturesResponse } from './types';
+import { ApiResponse, DashboardData, Movement, Category, ReportData, User, RegisterData, SuperAdminData, Entreprise, Facture, FacturesResponse, SubscriptionInfo, AbonnementItem, SubscriptionPlan } from './types';
 
 function getApiBaseUrl(): string {
   const envUrl = 
@@ -185,6 +185,21 @@ class ApiClient {
     if (res.data) {
       this.setSavedUser(res.data);
     }
+    return res.data!;
+  }
+
+  async switchEntreprise(entrepriseId: number): Promise<{ token: string; user: User }> {
+    const res = await this.request<{ token: string; user: User }>('/auth/switch_entreprise.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entreprise_id: entrepriseId }),
+    });
+
+    if (res.data?.token) {
+      this.setToken(res.data.token);
+      this.setSavedUser(res.data.user);
+    }
+
     return res.data!;
   }
 
@@ -500,6 +515,45 @@ class ApiClient {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'toggle_status', entreprise_id: entrepriseId }),
+    });
+    return res.data;
+  }
+
+  // --- Module Abonnements SaaS & Facturation ---
+  async getSubscriptionInfo(): Promise<SubscriptionInfo> {
+    const res = await this.request<SubscriptionInfo>('/abonnement.php');
+    return res.data!;
+  }
+
+  async requestSubscription(data: {
+    plan: 'gratuit' | 'pro' | 'enterprise';
+    duree_mois: number;
+    mode_paiement: string;
+    reference_paiement?: string;
+  }): Promise<any> {
+    const res = await this.request('/abonnement.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'request', ...data }),
+    });
+    return res.data;
+  }
+
+  async getAllAbonnements(statut?: string): Promise<{ abonnements: AbonnementItem[]; pending_count: number; total_revenue: number }> {
+    const query = statut ? `?all=1&statut=${encodeURIComponent(statut)}` : '?all=1';
+    const res = await this.request<{ abonnements: AbonnementItem[]; pending_count: number; total_revenue: number }>(`/abonnement.php${query}`);
+    return res.data!;
+  }
+
+  async validateSubscription(data: {
+    abonnement_id: number;
+    approved: boolean;
+    motif_rejet?: string;
+  }): Promise<any> {
+    const res = await this.request('/superadmin.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'validate_subscription', ...data }),
     });
     return res.data;
   }

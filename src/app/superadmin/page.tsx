@@ -23,7 +23,9 @@ import {
   UserCheck,
   UserX,
   Zap,
-  Globe
+  Globe,
+  CreditCard,
+  Check
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { SuperAdminData, EntrepriseItem, SaaSAuditLog, User } from '@/lib/types';
@@ -41,10 +43,36 @@ export default function SuperAdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'entreprises' | 'audit'>('entreprises');
+  const [activeTab, setActiveTab] = useState<'entreprises' | 'abonnements' | 'audit'>('entreprises');
+  const [subFilterStatus, setSubFilterStatus] = useState<string>('all');
 
   // Action en cours
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+
+  const handleValidateSubscription = async (abonnementId: number, approved: boolean) => {
+    let motifRejet: string | undefined = undefined;
+    if (!approved) {
+      const reason = window.prompt("Veuillez indiquer le motif du rejet de l'abonnement :");
+      if (reason === null) return; // Annulation
+      motifRejet = reason.trim() || 'Paiement non confirmé.';
+    }
+
+    try {
+      setActionLoadingId(abonnementId);
+      const res = await api.validateSubscription({
+        abonnement_id: abonnementId,
+        approved,
+        motif_rejet: motifRejet
+      });
+      setSuccessMsg(res?.message || (approved ? "Abonnement validé et activé avec succès !" : "Demande d'abonnement rejetée."));
+      setTimeout(() => setSuccessMsg(null), 4000);
+      await loadData();
+    } catch (err: any) {
+      setError(err.message || "Erreur lors de la validation de l'abonnement.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const loadData = async (isManualRefresh = false) => {
     try {
@@ -52,14 +80,21 @@ export default function SuperAdminPage() {
       setError(null);
 
       const user = api.getSavedUser();
-      if (!user || user.role !== 'superadmin') {
-        navigate('/');
+      if (!user) {
+        navigate('/login');
         return;
       }
       setCurrentUser(user);
 
+      if (user.role !== 'superadmin') {
+        setError("Accès refusé : Cette zone est strictement réservée au Super-Administrateur de la plateforme.");
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
       const res = await api.getSuperAdminData();
-      setData(res);
+      setData(res || null);
     } catch (err: any) {
       setError(err.message || 'Erreur lors du chargement des données Super-Admin.');
     } finally {
@@ -106,7 +141,7 @@ export default function SuperAdminPage() {
   };
 
   // Filtrage des entreprises
-  const filteredEntreprises = data?.entreprises.filter(ent => {
+  const filteredEntreprises = (data?.entreprises || []).filter(ent => {
     const matchesSearch = 
       ent.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ent.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -120,7 +155,7 @@ export default function SuperAdminPage() {
       (selectedStatus === 'inactive' && Number(ent.actif) === 0);
 
     return matchesSearch && matchesPlan && matchesStatus;
-  }) || [];
+  });
 
   const getPlanBadge = (plan: string) => {
     switch (plan) {
@@ -226,12 +261,12 @@ export default function SuperAdminPage() {
               </div>
             </div>
             <div className="text-3xl font-black text-white tracking-tight">
-              {data?.stats.total_entreprises || 0}
+              {data?.stats?.total_entreprises || 0}
             </div>
             <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-              <span className="text-emerald-400 font-medium">{data?.entreprises.filter(e => Number(e.actif) === 1).length || 0} actives</span>
+              <span className="text-emerald-400 font-medium">{(data?.entreprises || []).filter(e => Number(e.actif) === 1).length} actives</span>
               <span>•</span>
-              <span className="text-rose-400 font-medium">{data?.entreprises.filter(e => Number(e.actif) === 0).length || 0} suspendues</span>
+              <span className="text-rose-400 font-medium">{(data?.entreprises || []).filter(e => Number(e.actif) === 0).length} suspendues</span>
             </p>
           </div>
 
@@ -244,7 +279,7 @@ export default function SuperAdminPage() {
               </div>
             </div>
             <div className="text-3xl font-black text-white tracking-tight">
-              {data?.stats.total_users || 0}
+              {data?.stats?.total_users || 0}
             </div>
             <p className="text-xs text-slate-400 mt-1">Sur l'ensemble des tenants SaaS</p>
           </div>
@@ -258,7 +293,7 @@ export default function SuperAdminPage() {
               </div>
             </div>
             <div className="text-3xl font-black text-white tracking-tight">
-              {data?.stats.total_mouvements || 0}
+              {data?.stats?.total_mouvements || 0}
             </div>
             <p className="text-xs text-slate-400 mt-1">Entrées & sorties comptabilisées</p>
           </div>
@@ -272,7 +307,7 @@ export default function SuperAdminPage() {
               </div>
             </div>
             <div className="text-2xl font-black text-white tracking-tight truncate">
-              {new Intl.NumberFormat('fr-FR').format(data?.stats.volume_total || 0)}
+              {new Intl.NumberFormat('fr-FR').format(data?.stats?.volume_total || 0)}
             </div>
             <p className="text-xs text-slate-400 mt-1">Cumul multi-devises converti</p>
           </div>
@@ -286,7 +321,7 @@ export default function SuperAdminPage() {
             <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Abonnements SaaS actifs :</span>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {data?.stats.plans && data.stats.plans.length > 0 ? (
+            {data?.stats?.plans && data.stats.plans.length > 0 ? (
               data.stats.plans.map(p => (
                 <div key={p.plan} className="flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60 text-xs">
                   <span className="capitalize font-semibold text-slate-300">{p.plan} :</span>
@@ -312,6 +347,24 @@ export default function SuperAdminPage() {
             <Building2 className="w-4 h-4" />
             Entreprises & Tenants ({filteredEntreprises.length})
           </button>
+
+          <button
+            onClick={() => setActiveTab('abonnements')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+              activeTab === 'abonnements'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>Abonnements & Paiements</span>
+            {Boolean(data?.pending_abonnements && data.pending_abonnements > 0) && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 animate-pulse">
+                {data?.pending_abonnements} en attente
+              </span>
+            )}
+          </button>
+
           <button
             onClick={() => setActiveTab('audit')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
@@ -321,7 +374,7 @@ export default function SuperAdminPage() {
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
-            Journal d'Audit SaaS ({data?.recent_logs.length || 0})
+            Journal d'Audit SaaS ({data?.recent_logs?.length || 0})
           </button>
         </div>
 
@@ -495,6 +548,170 @@ export default function SuperAdminPage() {
               </div>
             </div>
 
+          </div>
+        )}
+
+        {/* Contenu Onglet : Abonnements SaaS & Paiements */}
+        {activeTab === 'abonnements' && (
+          <div className="space-y-4">
+            {/* Filtre par statut */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800/80">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-bold text-slate-300">Filtrer par statut :</span>
+                <select
+                  value={subFilterStatus}
+                  onChange={(e) => setSubFilterStatus(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-hidden focus:border-emerald-500"
+                >
+                  <option value="all">Tous les statuts</option>
+                  <option value="en_attente">En attente de validation</option>
+                  <option value="valide">Validés / Actifs</option>
+                  <option value="rejete">Rejetés</option>
+                  <option value="expire">Expirés</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">Total recettes abonnements :</span>
+                <span className="text-sm font-black text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20 font-mono">
+                  {new Intl.NumberFormat('fr-FR').format(data?.total_revenue || data?.stats?.total_abonnements_revenue || 0)} FCFA
+                </span>
+              </div>
+            </div>
+
+            {/* Table des Abonnements */}
+            <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+              <div className="px-5 py-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-white text-sm">Demandes de Souscription & Reçus de Paiement</h3>
+                  <p className="text-xs text-slate-400">Validez les paiements Mobile Money / Virements pour activer les plans</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-950/80 border-b border-slate-800/80 text-slate-400 uppercase tracking-wider font-bold">
+                    <tr>
+                      <th className="px-5 py-3">Date</th>
+                      <th className="px-4 py-3">Organisation</th>
+                      <th className="px-4 py-3">Demandeur</th>
+                      <th className="px-4 py-3">Plan / Durée</th>
+                      <th className="px-4 py-3">Montant</th>
+                      <th className="px-4 py-3">Mode & Réf</th>
+                      <th className="px-4 py-3">Statut</th>
+                      <th className="px-5 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {data?.abonnements && data.abonnements.filter(a => subFilterStatus === 'all' || a.statut === subFilterStatus).length > 0 ? (
+                      data.abonnements
+                        .filter(a => subFilterStatus === 'all' || a.statut === subFilterStatus)
+                        .map(abo => {
+                          const isPending = abo.statut === 'en_attente';
+                          const isActionLoading = actionLoadingId === abo.id;
+
+                          return (
+                            <tr key={abo.id} className="hover:bg-slate-800/40 transition-colors">
+                              <td className="px-5 py-3.5 font-mono text-slate-400 whitespace-nowrap">
+                                {new Date(abo.created_at).toLocaleDateString('fr-FR')}
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <span className="font-bold text-white block">{abo.entreprise_nom || `ID #${abo.entreprise_id}`}</span>
+                                <span className="text-[10px] text-slate-500 font-mono">Tenant #{abo.entreprise_id}</span>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <span className="text-slate-200 block">{abo.user_prenom} {abo.user_nom}</span>
+                                <span className="text-[10px] text-slate-500 font-mono">{abo.user_email}</span>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <span className="font-bold text-emerald-400 uppercase">{abo.plan}</span>
+                                <span className="text-slate-400 text-[11px] block">{abo.duree_mois ? `${abo.duree_mois} mois` : 'Illimité'}</span>
+                              </td>
+                              <td className="px-4 py-3.5 font-mono font-bold text-white">
+                                {new Intl.NumberFormat('fr-FR').format(abo.montant)} {abo.devise}
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <span className="capitalize font-semibold text-slate-300 block">
+                                  {abo.mode_paiement?.replace('_', ' ')}
+                                </span>
+                                {abo.reference_paiement && (
+                                  <span className="text-[10px] font-mono text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                    {abo.reference_paiement}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3.5">
+                                {abo.statut === 'valide' && (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> Validé
+                                  </span>
+                                )}
+                                {abo.statut === 'en_attente' && (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 animate-pulse">
+                                    <Clock className="w-3.5 h-3.5" /> En attente
+                                  </span>
+                                )}
+                                {abo.statut === 'rejete' && (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                                    <XCircle className="w-3.5 h-3.5" /> Rejeté
+                                  </span>
+                                )}
+                                {abo.statut === 'expire' && (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                                    Expiré
+                                  </span>
+                                )}
+                                {abo.motif_rejet && (
+                                  <p className="text-[10px] text-rose-400 mt-1 max-w-xs truncate" title={abo.motif_rejet}>
+                                    {abo.motif_rejet}
+                                  </p>
+                                )}
+                              </td>
+                              <td className="px-5 py-3.5 text-right">
+                                {isPending ? (
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      type="button"
+                                      disabled={isActionLoading}
+                                      onClick={() => handleValidateSubscription(abo.id, true)}
+                                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-xs flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                      title="Valider le paiement et activer le plan"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                      <span>Valider</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isActionLoading}
+                                      onClick={() => handleValidateSubscription(abo.id, false)}
+                                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                      title="Rejeter la demande"
+                                    >
+                                      <XCircle className="w-3.5 h-3.5" />
+                                      <span>Rejeter</span>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span className="text-[11px] text-slate-500">
+                                    {abo.date_validation ? `Traité le ${new Date(abo.date_validation).toLocaleDateString('fr-FR')}` : '—'}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                    ) : (
+                      <tr>
+                        <td colSpan={8} className="px-5 py-10 text-center text-slate-500">
+                          Aucune demande de souscription trouvée pour ce filtre.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 

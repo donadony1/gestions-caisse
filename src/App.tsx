@@ -7,6 +7,7 @@ import ControlePage from './app/controle/page';
 import RapportsPage from './app/rapports/page';
 import MembresPage from './app/membres/page';
 import FacturesPage from './app/factures/page';
+import AbonnementPage from './app/abonnement/page';
 import LoginPage from './app/login/page';
 import RegisterPage from './app/register/page';
 import SuperAdminPage from './app/superadmin/page';
@@ -64,6 +65,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <FacturesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/abonnement"
+        element={
+          <ProtectedRoute>
+            <AbonnementPage />
           </ProtectedRoute>
         }
       />

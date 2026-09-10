@@ -49,9 +49,26 @@ export interface SuperAdminData {
     total_mouvements: number;
     volume_total: number;
     plans: SaaSPlanStat[];
+    total_abonnements_revenue?: number;
+    pending_abonnements_count?: number;
   };
   entreprises: EntrepriseItem[];
   recent_logs: SaaSAuditLog[];
+  abonnements?: AbonnementItem[];
+  pending_abonnements?: number;
+  total_revenue?: number;
+}
+
+export interface UserEntrepriseAccess {
+  id: number;
+  nom: string;
+  slug: string;
+  devise: string;
+  plan?: 'gratuit' | 'pro' | 'enterprise';
+  logo_url?: string | null;
+  role: UserRole;
+  actif?: number | boolean;
+  is_default?: number | boolean;
 }
 
 export interface User {
@@ -64,6 +81,7 @@ export interface User {
   avatar_url?: string | null;
   actif?: number | boolean;
   entreprise?: Entreprise;
+  entreprises?: UserEntrepriseAccess[];
 }
 
 export interface RegisterData {
@@ -241,4 +259,69 @@ export interface FacturesResponse {
   };
   quota: FactureQuota;
 }
+
+// --- Module Abonnements SaaS & Facturation ---
+export type SubscriptionPlanId = 'gratuit' | 'pro' | 'enterprise';
+export type AbonnementStatus = 'en_attente' | 'valide' | 'rejete' | 'expire';
+export type PaymentProvider = 'orange_money' | 'mtn_momo' | 'virement' | 'carte' | 'gratuit' | 'autre';
+
+export interface SubscriptionPlan {
+  id: SubscriptionPlanId;
+  nom: string;
+  description: string;
+  prix_mensuel: number;
+  prix_annuel: number;
+  devise: string;
+  max_users: number | null;
+  max_mouvements_mois: number | null;
+  features: string[];
+}
+
+export interface AbonnementItem {
+  id: number;
+  entreprise_id: number;
+  user_id: number;
+  plan: SubscriptionPlanId;
+  duree_mois: number;
+  montant: number;
+  devise: string;
+  mode_paiement: PaymentProvider;
+  reference_paiement?: string | null;
+  statut: AbonnementStatus;
+  date_debut?: string | null;
+  date_fin?: string | null;
+  valide_par?: number | null;
+  date_validation?: string | null;
+  motif_rejet?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  entreprise_nom?: string | null;
+  entreprise_slug?: string | null;
+  user_nom?: string | null;
+  user_prenom?: string | null;
+  user_email?: string | null;
+  valide_par_nom?: string | null;
+  valide_par_prenom?: string | null;
+}
+
+export interface SubscriptionQuota {
+  current: number;
+  max: number | null;
+  pct: number;
+}
+
+export interface SubscriptionInfo {
+  plan_actuel: SubscriptionPlan;
+  plan_expires_at?: string | null;
+  is_expired: boolean;
+  days_remaining: number | null;
+  quotas: {
+    users: SubscriptionQuota;
+    movements_month: SubscriptionQuota;
+    factures?: SubscriptionQuota;
+  };
+  historique: AbonnementItem[];
+  plans_disponibles: SubscriptionPlan[];
+}
+
 
