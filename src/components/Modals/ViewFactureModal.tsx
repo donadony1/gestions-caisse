@@ -1,24 +1,226 @@
 import React, { useState } from 'react';
-import { X, Printer, Download, CheckCircle2, Clock, Building2, Phone, MapPin, DollarSign, Calendar, CreditCard, Sparkles, Loader2 } from 'lucide-react';
+import { X, Printer, Download, CheckCircle2, Clock, Building2, Phone, MapPin, DollarSign, Calendar, CreditCard, Sparkles, Loader2, FileText } from 'lucide-react';
 import { Facture } from '@/lib/types';
 import { api } from '@/lib/api';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-interface ViewFactureModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  facture: Facture | null;
-  autoPrint?: boolean;
-  onFactureUpdated?: (updated: Facture) => void;
-}
-
-// Fonction de génération du code HTML de la facture
+// Helper de détection de mobile
 export function isMobileDevice(): boolean {
   if (typeof window === 'undefined') return false;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
     (window.innerWidth < 768 && 'ontouchstart' in window);
 }
 
-// Fonction de génération du code HTML de la facture
+// Fonction de génération du code HTML propre pour l'export PDF haute définition
+export function getCleanFactureHtmlForPdf(facture: Facture): string {
+  const devise = facture.entreprise_devise || 'FCFA';
+  const formatMoney = (val: number) => new Intl.NumberFormat('fr-FR').format(val || 0);
+
+  const dateFacture = facture.date_facture 
+    ? new Date(facture.date_facture).toLocaleDateString('fr-FR') 
+    : new Date().toLocaleDateString('fr-FR');
+  const dateEcheance = facture.date_echeance 
+    ? new Date(facture.date_echeance).toLocaleDateString('fr-FR') 
+    : '';
+
+  return `
+    <div style="width: 794px; min-height: 1080px; background: #ffffff; color: #1e293b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.5; padding: 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <!-- En-tête -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0; margin-bottom: 28px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            ${facture.entreprise_logo 
+              ? `<img src="${facture.entreprise_logo}" alt="Logo" style="width: 64px; height: 64px; object-fit: contain; border-radius: 10px; border: 1px solid #cbd5e1; padding: 2px;" crossorigin="anonymous" />` 
+              : `<div style="width: 64px; height: 64px; border-radius: 10px; background: #059669; color: #ffffff; font-size: 28px; font-weight: bold; display: flex; align-items: center; justify-content: center;">${(facture.entreprise_nom || 'E')[0]}</div>`
+            }
+            <div>
+              <div style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">${facture.entreprise_nom || 'Notre Entreprise'}</div>
+              <div style="font-size: 11px; color: #64748b; line-height: 1.4;">
+                ${facture.entreprise_telephone ? `📞 ${facture.entreprise_telephone}<br>` : ''}
+                ${facture.entreprise_localisation ? `📍 ${facture.entreprise_localisation}` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: right;">
+            <div style="display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; background: #f1f5f9; color: #334155; padding: 4px 12px; border-radius: 6px; margin-bottom: 6px;">FACTURE OFFICIELLE</div>
+            <div style="font-size: 24px; font-weight: 900; color: #0f172a; font-family: monospace; margin-bottom: 8px;">${facture.numero_facture}</div>
+            <div>
+              ${facture.statut === 'paye' 
+                ? `<span style="display: inline-block; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 9999px; background: #dcfce7; color: #166534; border: 1px solid #86efac;">✔ FACTURE PAYÉE</span>` 
+                : (Number(facture.montant_recu || 0) > 0
+                  ? `<span style="display: inline-block; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 9999px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⏳ ACOMPTE REÇU (SOLDE DÛ)</span>`
+                  : `<span style="display: inline-block; font-size: 11px; font-weight: 800; padding: 4px 14px; border-radius: 9999px; background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">⏳ EN ATTENTE DE RÈGLEMENT</span>`
+                )
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Détails Client & Dates -->
+        <div style="display: flex; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 24px; margin-bottom: 28px;">
+          <div style="width: 48%;">
+            <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 6px;">Facturé à (Client)</div>
+            <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">${facture.client_nom || 'Client'}</div>
+            ${facture.client_telephone ? `<div style="font-size: 12px; color: #475569; margin-bottom: 2px;">📞 ${facture.client_telephone}</div>` : ''}
+            ${facture.client_localisation ? `<div style="font-size: 12px; color: #475569;">📍 ${facture.client_localisation}</div>` : ''}
+          </div>
+
+          <div style="width: 48%; text-align: right;">
+            <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 6px;">Détails de facturation</div>
+            <div style="font-size: 12px; color: #475569; margin-bottom: 4px; display: flex; justify-content: space-between;"><span>Date d'émission :</span> <strong style="color: #0f172a;">${dateFacture}</strong></div>
+            ${dateEcheance ? `<div style="font-size: 12px; color: #475569; margin-bottom: 4px; display: flex; justify-content: space-between;"><span>Date d'échéance :</span> <strong style="color: #0f172a;">${dateEcheance}</strong></div>` : ''}
+            <div style="font-size: 12px; color: #475569; display: flex; justify-content: space-between;"><span>Mode de règlement :</span> <strong style="color: #0f172a;">${(facture.mode_paiement || 'especes').replace('_', ' ').toUpperCase()}</strong></div>
+          </div>
+        </div>
+
+        <!-- Tableau des prestations -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 28px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+          <thead>
+            <tr style="background: #f1f5f9;">
+              <th style="color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 18px; border-bottom: 1px solid #e2e8f0; text-align: left;">Désignation / Service Rendu</th>
+              <th style="color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 18px; border-bottom: 1px solid #e2e8f0; text-align: right; width: 180px;">Montant (${devise})</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 18px; border-bottom: 1px solid #f1f5f9; vertical-align: top;">
+                <div style="font-size: 14px; font-weight: 600; color: #1e293b; white-space: pre-line; line-height: 1.6;">${facture.service_rendu || 'Prestation de service'}</div>
+              </td>
+              <td style="padding: 18px; border-bottom: 1px solid #f1f5f9; vertical-align: top; text-align: right; font-family: monospace; font-size: 15px; font-weight: 700; color: #0f172a;">
+                ${formatMoney(facture.montant || 0)}
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="background: #f8fafc; border-top: 2px solid #cbd5e1;">
+              <td style="text-align: right; padding: 14px 18px; font-size: 13px; font-weight: 800; text-transform: uppercase; color: #475569;">TOTAL TTC À PAYER</td>
+              <td style="text-align: right; padding: 14px 18px; font-size: 18px; font-weight: 900; color: #059669; font-family: monospace;">${formatMoney(facture.montant || 0)} ${devise}</td>
+            </tr>
+            ${(Number(facture.montant_recu || 0) > 0) ? `
+              <tr style="background: #ffffff; border-top: 1px dashed #cbd5e1;">
+                <td style="text-align: right; padding: 10px 18px; font-size: 12px; font-weight: 700; color: #475569;">Montant Reçu / Versé :</td>
+                <td style="text-align: right; padding: 10px 18px; font-size: 14px; font-weight: 800; color: #0f172a; font-family: monospace;">${formatMoney(Number(facture.montant_recu))} ${devise}</td>
+              </tr>
+            ` : ''}
+            ${(Number(facture.reliquat || 0) > 0) ? `
+              <tr style="background: #ecfdf5; border-top: 1px solid #a7f3d0;">
+                <td style="text-align: right; padding: 10px 18px; font-size: 12px; font-weight: 800; color: #065f46;">Reliquat / Monnaie rendue :</td>
+                <td style="text-align: right; padding: 10px 18px; font-size: 14px; font-weight: 900; color: #059669; font-family: monospace;">${formatMoney(Number(facture.reliquat))} ${devise}</td>
+              </tr>
+            ` : ''}
+            ${(facture.statut === 'en_attente' && Number(facture.montant_recu || 0) < Number(facture.montant || 0)) ? `
+              <tr style="background: #fffbeb; border-top: 1px solid #fde68a;">
+                <td style="text-align: right; padding: 10px 18px; font-size: 12px; font-weight: 800; color: #92400e;">Reste à payer :</td>
+                <td style="text-align: right; padding: 10px 18px; font-size: 15px; font-weight: 900; color: #d97706; font-family: monospace;">${formatMoney(Math.max(0, Number(facture.montant || 0) - Number(facture.montant_recu || 0)))} ${devise}</td>
+              </tr>
+            ` : ''}
+          </tfoot>
+        </table>
+
+        <!-- Notes -->
+        ${facture.notes ? `
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin-bottom: 28px; font-size: 12px; color: #475569;">
+            <strong style="color: #0f172a; display: block; margin-bottom: 4px;">Notes & Conditions :</strong>
+            <div>${facture.notes}</div>
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- Footer -->
+      <div style="margin-top: 36px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: 11px;">
+        <p style="font-weight: 600; color: #64748b; margin-bottom: 4px;">Merci pour votre confiance !</p>
+        <p style="font-size: 10px;">Facture officielle générée via le système de gestion de caisse.</p>
+      </div>
+    </div>
+  `;
+}
+
+// Fonction de génération d'un véritable fichier PDF au format Blob
+export async function generateFacturePdfBlob(facture: Facture): Promise<Blob> {
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = '794px';
+  container.style.backgroundColor = '#ffffff';
+  container.innerHTML = getCleanFactureHtmlForPdf(facture);
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2, // Résolution 2x haute définition
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true,
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, Math.min(imgHeight, pdfHeight));
+    return pdf.output('blob');
+  } finally {
+    document.body.removeChild(container);
+  }
+}
+
+// Téléchargement direct du fichier PDF (.pdf) avec support mobile et Web Share
+export async function downloadSingleFacture(facture: Facture): Promise<void> {
+  const safeClient = (facture.client_nom || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `Facture_${facture.numero_facture}_${safeClient}.pdf`;
+
+  try {
+    const pdfBlob = await generateFacturePdfBlob(facture);
+
+    // 1. Tenter le partage natif (Web Share API) sur mobile si supporté avec le fichier .pdf
+    if (isMobileDevice() && typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: `Facture ${facture.numero_facture}`,
+            text: `Facture ${facture.numero_facture} pour ${facture.client_nom}`,
+          });
+          return;
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    // 2. Téléchargement direct du fichier .pdf
+    const url = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 60000);
+  } catch (error) {
+    console.error('Erreur génération PDF:', error);
+    // Fallback d'impression en cas d'erreur
+    printSingleFacture(facture);
+  }
+}
+
+// Fonction de génération du code HTML de la facture (pour l'affichage navigateur et impression)
 export function generateFactureHtml(facture: Facture): string {
   const devise = facture.entreprise_devise || 'FCFA';
   const formatMoney = (val: number) => new Intl.NumberFormat('fr-FR').format(val || 0);
@@ -349,7 +551,10 @@ export function generateFactureHtml(facture: Facture): string {
           <div>
             ${facture.statut === 'paye' 
               ? `<span class="status-stamp status-paye">✔ FACTURE PAYÉE</span>` 
-              : `<span class="status-stamp status-attente">⏳ EN ATTENTE DE RÈGLEMENT</span>`
+              : (Number(facture.montant_recu || 0) > 0
+                ? `<span class="status-stamp status-attente">⏳ ACOMPTE REÇU (SOLDE DÛ)</span>`
+                : `<span class="status-stamp status-attente">⏳ EN ATTENTE DE RÈGLEMENT</span>`
+              )
             }
           </div>
         </div>
@@ -393,6 +598,24 @@ export function generateFactureHtml(facture: Facture): string {
             <td class="total-label">TOTAL TTC À PAYER</td>
             <td class="total-amount">${formatMoney(facture.montant || 0)} ${devise}</td>
           </tr>
+          ${(Number(facture.montant_recu || 0) > 0) ? `
+            <tr style="background: #ffffff; border-top: 1px dashed #cbd5e1;">
+              <td class="total-label" style="font-size: 11px; color: #475569;">Montant Reçu / Versé :</td>
+              <td class="total-amount" style="font-size: 14px; color: #0f172a;">${formatMoney(Number(facture.montant_recu))} ${devise}</td>
+            </tr>
+          ` : ''}
+          ${(Number(facture.reliquat || 0) > 0) ? `
+            <tr style="background: #ecfdf5; border-top: 1px solid #a7f3d0;">
+              <td class="total-label" style="font-size: 11px; color: #065f46;">Reliquat / Monnaie rendue :</td>
+              <td class="total-amount" style="font-size: 14px; color: #059669;">${formatMoney(Number(facture.reliquat))} ${devise}</td>
+            </tr>
+          ` : ''}
+          ${(facture.statut === 'en_attente' && Number(facture.montant_recu || 0) < Number(facture.montant || 0)) ? `
+            <tr style="background: #fffbeb; border-top: 1px solid #fde68a;">
+              <td class="total-label" style="font-size: 11px; color: #92400e;">Reste à payer :</td>
+              <td class="total-amount" style="font-size: 15px; color: #d97706;">${formatMoney(Math.max(0, Number(facture.montant || 0) - Number(facture.montant_recu || 0)))} ${devise}</td>
+            </tr>
+          ` : ''}
         </tfoot>
       </table>
 
@@ -410,64 +633,6 @@ export function generateFactureHtml(facture: Facture): string {
     </body>
     </html>
   `;
-}
-
-// Téléchargement / Partage direct de la facture client
-export async function downloadSingleFacture(facture: Facture): Promise<void> {
-  const html = generateFactureHtml(facture);
-  const safeClient = (facture.client_nom || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
-  const filename = `Facture_${facture.numero_facture}_${safeClient}.html`;
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-
-  // 1. Tenter le partage natif (Web Share API) sur mobile si supporté (WhatsApp, Fichiers, Drive, etc.)
-  if (isMobileDevice() && typeof navigator !== 'undefined' && navigator.share) {
-    try {
-      const file = new File([blob], filename, { type: 'text/html' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `Facture ${facture.numero_facture}`,
-          text: `Facture ${facture.numero_facture} pour ${facture.client_nom}`,
-        });
-        return;
-      }
-    } catch (err: any) {
-      if (err.name === 'AbortError') return; // L'utilisateur a simplement fermé la fenêtre de partage
-    }
-  }
-
-  // 2. Sur mobile : ouvrir un onglet propre dédié avec barre d'action et boîte de dialogue d'enregistrement PDF
-  if (isMobileDevice()) {
-    const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.document.open();
-      newWindow.document.write(html);
-      newWindow.document.close();
-      setTimeout(() => {
-        try {
-          newWindow.focus();
-          newWindow.print();
-        } catch (e) {
-          // ignore
-        }
-      }, 500);
-      return;
-    }
-  }
-
-  // 3. Fallback Desktop / Téléchargement standard de fichier
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  // Conserver l'URL pendant 60 secondes pour éviter l'annulation prématurée du téléchargement par le navigateur
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-  }, 60000);
 }
 
 // Fonction d'impression 100% isolée pour garantir l'impression d'UNE SEULE facture client
@@ -525,6 +690,14 @@ export function printSingleFacture(facture: Facture) {
   }
 }
 
+export interface ViewFactureModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  facture: Facture | null;
+  autoPrint?: boolean;
+  onFactureUpdated?: (updated: Facture) => void;
+}
+
 export const ViewFactureModal: React.FC<ViewFactureModalProps> = ({
   isOpen,
   onClose,
@@ -533,6 +706,7 @@ export const ViewFactureModal: React.FC<ViewFactureModalProps> = ({
   onFactureUpdated,
 }) => {
   const [loadingPay, setLoadingPay] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [currentFacture, setCurrentFacture] = useState<Facture | null>(facture);
 
   React.useEffect(() => {
@@ -555,9 +729,13 @@ export const ViewFactureModal: React.FC<ViewFactureModalProps> = ({
     }
   };
 
-  const handleDownload = () => {
-    if (currentFacture) {
-      downloadSingleFacture(currentFacture);
+  const handleDownload = async () => {
+    if (!currentFacture || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      await downloadSingleFacture(currentFacture);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -620,11 +798,12 @@ export const ViewFactureModal: React.FC<ViewFactureModalProps> = ({
             <button
               type="button"
               onClick={handleDownload}
-              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 cursor-pointer active:scale-95"
-              title="Télécharger la facture sur votre appareil"
+              disabled={isDownloading}
+              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-indigo-600/30 cursor-pointer active:scale-95 disabled:opacity-60"
+              title="Télécharger la facture au format PDF sur votre appareil"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Téléchargement de la facture</span>
+              {isDownloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              <span>{isDownloading ? 'Génération du PDF...' : 'Télécharger en PDF'}</span>
             </button>
 
             <button
@@ -698,6 +877,11 @@ export const ViewFactureModal: React.FC<ViewFactureModalProps> = ({
                   <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>FACTURE PAYÉE</span>
+                  </span>
+                ) : Number(currentFacture.montant_recu || 0) > 0 ? (
+                  <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>ACOMPTE REÇU (SOLDE DÛ)</span>
                   </span>
                 ) : (
                   <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-300">
@@ -785,6 +969,39 @@ export const ViewFactureModal: React.FC<ViewFactureModalProps> = ({
                     {formatMoney(currentFacture.montant || 0)} {devise}
                   </td>
                 </tr>
+
+                {Number(currentFacture.montant_recu || 0) > 0 && (
+                  <tr className="border-t border-dashed border-slate-200 bg-white">
+                    <td className="p-3.5 text-right text-xs font-semibold text-slate-600">
+                      Montant Reçu / Versé :
+                    </td>
+                    <td className="p-3.5 text-right text-sm font-bold text-slate-900 font-mono">
+                      {formatMoney(Number(currentFacture.montant_recu))} {devise}
+                    </td>
+                  </tr>
+                )}
+
+                {Number(currentFacture.reliquat || 0) > 0 && (
+                  <tr className="border-t border-slate-200 bg-emerald-50/60 text-emerald-900">
+                    <td className="p-3.5 text-right text-xs font-bold text-emerald-800">
+                      Reliquat / Monnaie rendue :
+                    </td>
+                    <td className="p-3.5 text-right text-sm font-black text-emerald-700 font-mono">
+                      {formatMoney(Number(currentFacture.reliquat))} {devise}
+                    </td>
+                  </tr>
+                )}
+
+                {currentFacture.statut === 'en_attente' && Number(currentFacture.montant_recu || 0) < Number(currentFacture.montant || 0) && (
+                  <tr className="border-t border-amber-200 bg-amber-50/60 text-amber-900">
+                    <td className="p-3.5 text-right text-xs font-bold text-amber-800">
+                      Reste à payer :
+                    </td>
+                    <td className="p-3.5 text-right text-base font-black text-amber-700 font-mono">
+                      {formatMoney(Math.max(0, Number(currentFacture.montant || 0) - Number(currentFacture.montant_recu || 0)))} {devise}
+                    </td>
+                  </tr>
+                )}
               </tfoot>
             </table>
           </div>

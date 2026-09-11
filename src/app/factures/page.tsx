@@ -42,6 +42,7 @@ export default function FacturesPage() {
   const [selectedFacture, setSelectedFacture] = useState<Facture | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   const loadData = async () => {
     try {
@@ -78,6 +79,16 @@ export default function FacturesPage() {
     setAutoPrint(false);
     setSelectedFacture(facture);
     setIsViewModalOpen(true);
+  };
+
+  const handleDownloadPdf = async (facture: Facture) => {
+    if (downloadingId) return;
+    setDownloadingId(facture.id);
+    try {
+      await downloadSingleFacture(facture);
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const handleFactureCreated = (created: Facture) => {
@@ -319,6 +330,11 @@ export default function FacturesPage() {
                         <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                         <span>Payée</span>
                       </span>
+                    ) : Number(facture.montant_recu || 0) > 0 ? (
+                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        <Clock className="w-3 h-3 text-amber-600" />
+                        <span>Acompte reçu</span>
+                      </span>
                     ) : (
                       <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
                         <Clock className="w-3 h-3 text-amber-600" />
@@ -347,6 +363,17 @@ export default function FacturesPage() {
                       <span className="text-base font-black font-mono text-slate-900">
                         {formatMoney(facture.montant)} <span className="text-xs text-slate-500">{devise}</span>
                       </span>
+                      {Number(facture.montant_recu || 0) > 0 && (
+                        <div className="text-[10px] text-slate-500 font-mono mt-0.5 space-y-0.5">
+                          <div>Reçu: <span className="font-semibold text-slate-700">{formatMoney(Number(facture.montant_recu))} {devise}</span></div>
+                          {facture.statut === 'en_attente' && Number(facture.montant) > Number(facture.montant_recu) && (
+                            <div className="text-amber-600 font-bold">Reste: {formatMoney(Number(facture.montant) - Number(facture.montant_recu))} {devise}</div>
+                          )}
+                          {Number(facture.reliquat || 0) > 0 && (
+                            <div className="text-emerald-600 font-semibold">Rendu: {formatMoney(Number(facture.reliquat))} {devise}</div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center space-x-1.5">
@@ -362,12 +389,17 @@ export default function FacturesPage() {
 
                       <button
                         type="button"
-                        onClick={() => downloadSingleFacture(facture)}
-                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center space-x-1 shadow-sm shadow-indigo-600/20 active:scale-95"
-                        title="Télécharger la facture"
+                        onClick={() => handleDownloadPdf(facture)}
+                        disabled={downloadingId === facture.id}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition flex items-center space-x-1 shadow-sm shadow-indigo-600/20 active:scale-95 disabled:opacity-60"
+                        title="Télécharger la facture au format PDF"
                       >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Télécharger</span>
+                        {downloadingId === facture.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Download className="w-3.5 h-3.5" />
+                        )}
+                        <span>{downloadingId === facture.id ? 'PDF...' : 'PDF'}</span>
                       </button>
                     </div>
                   </div>
@@ -429,7 +461,18 @@ export default function FacturesPage() {
 
                         {/* Montant */}
                         <td className="p-4 align-top text-right font-mono font-bold text-xs text-slate-900">
-                          {formatMoney(facture.montant)} {devise}
+                          <div>{formatMoney(facture.montant)} {devise}</div>
+                          {Number(facture.montant_recu || 0) > 0 && (
+                            <div className="text-[10px] text-slate-500 font-normal mt-0.5 space-y-0.5">
+                              <div>Reçu: <span className="font-semibold text-slate-700">{formatMoney(Number(facture.montant_recu))} {devise}</span></div>
+                              {facture.statut === 'en_attente' && Number(facture.montant) > Number(facture.montant_recu) && (
+                                <div className="text-amber-600 font-bold">Reste: {formatMoney(Number(facture.montant) - Number(facture.montant_recu))} {devise}</div>
+                              )}
+                              {Number(facture.reliquat || 0) > 0 && (
+                                <div className="text-emerald-600 font-semibold">Rendu: {formatMoney(Number(facture.reliquat))} {devise}</div>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* Statut */}
@@ -438,6 +481,11 @@ export default function FacturesPage() {
                             <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                               <span>Payée</span>
+                            </span>
+                          ) : Number(facture.montant_recu || 0) > 0 ? (
+                            <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              <span>Acompte reçu</span>
                             </span>
                           ) : (
                             <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
@@ -462,12 +510,19 @@ export default function FacturesPage() {
 
                             <button
                               type="button"
-                              onClick={() => downloadSingleFacture(facture)}
-                              className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition flex items-center space-x-1 border border-indigo-200/80 shadow-2xs active:scale-95"
-                              title="Téléchargement de la facture"
+                              onClick={() => handleDownloadPdf(facture)}
+                              disabled={downloadingId === facture.id}
+                              className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition flex items-center space-x-1 border border-indigo-200/80 shadow-2xs active:scale-95 disabled:opacity-60"
+                              title="Télécharger la facture au format PDF"
                             >
-                              <Download className="w-3.5 h-3.5 text-indigo-600" />
-                              <span className="hidden sm:inline">Télécharger</span>
+                              {downloadingId === facture.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5 text-indigo-600" />
+                              )}
+                              <span className="hidden sm:inline">
+                                {downloadingId === facture.id ? 'PDF...' : 'PDF'}
+                              </span>
                             </button>
                           </div>
                         </td>

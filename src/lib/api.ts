@@ -472,6 +472,7 @@ class ApiClient {
     client_localisation?: string;
     service_rendu: string;
     montant: number;
+    montant_recu?: number;
     statut?: 'paye' | 'en_attente';
     date_facture?: string;
     date_echeance?: string;

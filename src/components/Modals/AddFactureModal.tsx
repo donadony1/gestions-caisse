@@ -23,6 +23,7 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
   const [clientLocalisation, setClientLocalisation] = useState('');
   const [serviceRendu, setServiceRendu] = useState('');
   const [montant, setMontant] = useState('');
+  const [montantRecu, setMontantRecu] = useState('');
   const [statut, setStatut] = useState<'paye' | 'en_attente'>('en_attente');
   const [modePaiement, setModePaiement] = useState<string>('especes');
   const [dateFacture, setDateFacture] = useState(new Date().toISOString().split('T')[0]);
@@ -40,6 +41,7 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
       setClientLocalisation('');
       setServiceRendu('');
       setMontant('');
+      setMontantRecu('');
       setStatut('en_attente');
       setModePaiement('especes');
       setDateFacture(new Date().toISOString().split('T')[0]);
@@ -52,6 +54,47 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
 
   const isLimitReached = quota?.is_limit_reached;
   const devise = currentUser?.entreprise?.devise || 'FCFA';
+
+  const numTotal = parseFloat(montant) || 0;
+  const numRecu = parseFloat(montantRecu) || 0;
+  const reliquat = numRecu > numTotal && numTotal > 0 ? Math.round((numRecu - numTotal) * 100) / 100 : 0;
+  const resteAPayer = numTotal > numRecu ? Math.round((numTotal - numRecu) * 100) / 100 : 0;
+
+  const handleMontantChange = (val: string) => {
+    setMontant(val);
+    const newTotal = parseFloat(val) || 0;
+    const recu = parseFloat(montantRecu) || 0;
+    if (recu >= newTotal && newTotal > 0) {
+      setStatut('paye');
+    } else if (recu > 0 && recu < newTotal) {
+      setStatut('en_attente');
+    }
+  };
+
+  const handleMontantRecuChange = (val: string) => {
+    setMontantRecu(val);
+    const recu = parseFloat(val) || 0;
+    const total = parseFloat(montant) || 0;
+    if (recu >= total && total > 0) {
+      setStatut('paye');
+    } else if (recu > 0 && recu < total) {
+      setStatut('en_attente');
+    }
+  };
+
+  const handleSelectPaye = () => {
+    setStatut('paye');
+    if (!montantRecu || parseFloat(montantRecu) < (parseFloat(montant) || 0)) {
+      setMontantRecu(montant);
+    }
+  };
+
+  const handleSelectEnAttente = () => {
+    setStatut('en_attente');
+    if (parseFloat(montantRecu) >= (parseFloat(montant) || 0) && parseFloat(montant) > 0) {
+      setMontantRecu('');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +115,8 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
       return;
     }
 
+    const numericRecu = parseFloat(montantRecu) || 0;
+
     setLoading(true);
     setError(null);
     setSuccessMsg(null);
@@ -83,6 +128,7 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
         client_localisation: clientLocalisation.trim() || undefined,
         service_rendu: serviceRendu.trim(),
         montant: numericAmount,
+        montant_recu: numericRecu,
         statut: statut,
         mode_paiement: modePaiement,
         date_facture: dateFacture,
@@ -93,6 +139,8 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
       setSuccessMsg(
         statut === 'paye'
           ? 'Facture créée et montant crédité dans la caisse !'
+          : numericRecu > 0
+          ? `Facture créée : acompte de ${numericRecu} ${devise} crédité en caisse, reste ${numericAmount - numericRecu} ${devise}.`
           : 'Facture émise avec succès (en attente de paiement).'
       );
 
@@ -256,7 +304,7 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Montant total ({devise}) <span className="text-rose-500">*</span>
+                    Montant total de la facture ({devise}) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <DollarSign className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -266,7 +314,7 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
                       min="1"
                       required
                       value={montant}
-                      onChange={(e) => setMontant(e.target.value)}
+                      onChange={(e) => handleMontantChange(e.target.value)}
                       placeholder="Ex : 250000"
                       className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
@@ -274,6 +322,57 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
                 </div>
 
                 <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Montant reçu du client ({devise})
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={montantRecu}
+                      onChange={(e) => handleMontantRecuChange(e.target.value)}
+                      placeholder={montant ? `Ex : ${montant}` : "Ex : 250000"}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Indicateur dynamique : Reliquat ou Reste à payer */}
+              {reliquat > 0 && (
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span><strong>Facture soldée :</strong> Montant reçu suffisant.</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-emerald-700 block">Monnaie / Reliquat à rendre</span>
+                    <span className="text-sm font-black font-mono text-emerald-800">
+                      {new Intl.NumberFormat('fr-FR').format(reliquat)} {devise}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {resteAPayer > 0 && numRecu > 0 && (
+                <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span><strong>Acompte reçu :</strong> {new Intl.NumberFormat('fr-FR').format(numRecu)} {devise} (entre en caisse)</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-amber-700 block">Reste à payer</span>
+                    <span className="text-sm font-black font-mono text-amber-800">
+                      {new Intl.NumberFormat('fr-FR').format(resteAPayer)} {devise}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Mode de règlement
                   </label>
@@ -304,7 +403,7 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setStatut('en_attente')}
+                  onClick={handleSelectEnAttente}
                   className={`p-3 rounded-2xl border text-xs font-bold transition flex flex-col items-center justify-center space-y-1 ${
                     statut === 'en_attente'
                       ? 'bg-amber-500 text-white border-amber-600 shadow-md'
@@ -312,12 +411,14 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
                   }`}
                 >
                   <span className="text-sm">⏳ EN ATTENTE</span>
-                  <span className="text-[10px] font-normal opacity-90">À régler plus tard</span>
+                  <span className="text-[10px] font-normal opacity-90">
+                    {numRecu > 0 ? 'Acompte partiel' : 'À régler plus tard'}
+                  </span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setStatut('paye')}
+                  onClick={handleSelectPaye}
                   className={`p-3 rounded-2xl border text-xs font-bold transition flex flex-col items-center justify-center space-y-1 ${
                     statut === 'paye'
                       ? 'bg-emerald-600 text-white border-emerald-700 shadow-md'
@@ -325,7 +426,7 @@ export const AddFactureModal: React.FC<AddFactureModalProps> = ({
                   }`}
                 >
                   <span className="text-sm">✅ DÉJÀ PAYÉ</span>
-                  <span className="text-[10px] font-normal opacity-90">Entre dans la caisse</span>
+                  <span className="text-[10px] font-normal opacity-90">Soldé en caisse</span>
                 </button>
               </div>
 

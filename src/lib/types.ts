@@ -221,6 +221,8 @@ export interface Facture {
   client_localisation?: string | null;
   service_rendu: string;
   montant: number;
+  montant_recu?: number | null;
+  reliquat?: number | null;
   statut: FactureStatus;
   date_facture: string;
   date_echeance?: string | null;
