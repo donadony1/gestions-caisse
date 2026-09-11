@@ -12,6 +12,13 @@ interface ViewFactureModalProps {
 }
 
 // Fonction de génération du code HTML de la facture
+export function isMobileDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (window.innerWidth < 768 && 'ontouchstart' in window);
+}
+
+// Fonction de génération du code HTML de la facture
 export function generateFactureHtml(facture: Facture): string {
   const devise = facture.entreprise_devise || 'FCFA';
   const formatMoney = (val: number) => new Intl.NumberFormat('fr-FR').format(val || 0);
@@ -28,11 +35,12 @@ export function generateFactureHtml(facture: Facture): string {
     <html lang="fr">
     <head>
       <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Facture ${facture.numero_facture} - ${facture.client_nom}</title>
       <style>
         @page {
           size: A4 portrait;
-          margin: 12mm;
+          margin: 10mm;
         }
         * {
           box-sizing: border-box;
@@ -45,7 +53,54 @@ export function generateFactureHtml(facture: Facture): string {
           color: #1e293b;
           font-size: 13px;
           line-height: 1.5;
-          padding: 10px;
+          padding: 12px;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          body {
+            padding: 0 !important;
+            max-width: 100% !important;
+          }
+        }
+        .action-bar {
+          background: #0f172a;
+          color: #ffffff;
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
+          border-radius: 12px;
+          margin-bottom: 20px;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+        }
+        .btn-print {
+          background: #4f46e5;
+          color: #ffffff;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-weight: 700;
+          font-size: 13px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .btn-close {
+          background: rgba(255,255,255,0.15);
+          color: #ffffff;
+          border: none;
+          padding: 8px 14px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
         }
         .header {
           display: flex;
@@ -54,6 +109,7 @@ export function generateFactureHtml(facture: Facture): string {
           padding-bottom: 20px;
           border-bottom: 2px solid #e2e8f0;
           margin-bottom: 24px;
+          gap: 16px;
         }
         .company-info {
           display: flex;
@@ -138,6 +194,7 @@ export function generateFactureHtml(facture: Facture): string {
           border-radius: 12px;
           padding: 16px 20px;
           margin-bottom: 24px;
+          gap: 16px;
         }
         .details-col {
           width: 48%;
@@ -257,6 +314,20 @@ export function generateFactureHtml(facture: Facture): string {
       </style>
     </head>
     <body>
+      <div class="no-print action-bar">
+        <div style="font-weight: 800; font-size: 14px;">
+          📄 Facture ${facture.numero_facture}
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button onclick="window.print()" class="btn-print">
+            🖨️ Enregistrer en PDF / Imprimer
+          </button>
+          <button onclick="window.close()" class="btn-close">
+            ✕ Fermer
+          </button>
+        </div>
+      </div>
+
       <div class="header">
         <div class="company-info">
           ${facture.entreprise_logo 
@@ -341,23 +412,89 @@ export function generateFactureHtml(facture: Facture): string {
   `;
 }
 
-// Téléchargement direct du fichier facture officiel (.html auto-imprimable / conservable)
-export function downloadSingleFacture(facture: Facture) {
+// Téléchargement / Partage direct de la facture client
+export async function downloadSingleFacture(facture: Facture): Promise<void> {
   const html = generateFactureHtml(facture);
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const safeClient = (facture.client_nom || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `Facture_${facture.numero_facture}_${safeClient}.html`;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+
+  // 1. Tenter le partage natif (Web Share API) sur mobile si supporté (WhatsApp, Fichiers, Drive, etc.)
+  if (isMobileDevice() && typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      const file = new File([blob], filename, { type: 'text/html' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: `Facture ${facture.numero_facture}`,
+          text: `Facture ${facture.numero_facture} pour ${facture.client_nom}`,
+        });
+        return;
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') return; // L'utilisateur a simplement fermé la fenêtre de partage
+    }
+  }
+
+  // 2. Sur mobile : ouvrir un onglet propre dédié avec barre d'action et boîte de dialogue d'enregistrement PDF
+  if (isMobileDevice()) {
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.open();
+      newWindow.document.write(html);
+      newWindow.document.close();
+      setTimeout(() => {
+        try {
+          newWindow.focus();
+          newWindow.print();
+        } catch (e) {
+          // ignore
+        }
+      }, 500);
+      return;
+    }
+  }
+
+  // 3. Fallback Desktop / Téléchargement standard de fichier
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  const safeClient = (facture.client_nom || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
-  link.download = `Facture_${facture.numero_facture}_${safeClient}.html`;
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+
+  // Conserver l'URL pendant 60 secondes pour éviter l'annulation prématurée du téléchargement par le navigateur
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 60000);
 }
 
 // Fonction d'impression 100% isolée pour garantir l'impression d'UNE SEULE facture client
 export function printSingleFacture(facture: Facture) {
+  const html = generateFactureHtml(facture);
+
+  // Sur mobile : les iframes invisibles/hors-écran (-9999px) sont bloquées par les navigateurs mobiles.
+  // On utilise un onglet propre ou window.open avec déclenchement direct du spooler d'impression mobile (Enregistrer au format PDF).
+  if (isMobileDevice()) {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      setTimeout(() => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch (e) {
+          window.print();
+        }
+      }, 500);
+      return;
+    }
+  }
+
+  // Sur Desktop : iframe invisible isolée
   const existingFrame = document.getElementById('print-facture-iframe');
   if (existingFrame) existingFrame.remove();
 
@@ -371,7 +508,6 @@ export function printSingleFacture(facture: Facture) {
   iframe.style.border = 'none';
   document.body.appendChild(iframe);
 
-  const html = generateFactureHtml(facture);
   const doc = iframe.contentWindow?.document || iframe.contentDocument;
   if (doc) {
     doc.open();
