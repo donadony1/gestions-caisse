@@ -21,7 +21,9 @@ import {
   Clock,
   CheckCircle2,
   ShieldCheck,
-  CreditCard
+  CreditCard,
+  Globe,
+  ExternalLink
 } from 'lucide-react';
 import { User, UserEntrepriseAccess, Movement } from '@/lib/types';
 import { api } from '@/lib/api';
@@ -329,6 +331,19 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ user, pendingCount = 0, on
           {/* Actions : Navigation Desktop & Accès Mobile */}
           <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             
+            {/* Bouton Site Officiel (Desktop) */}
+            <a
+              href="https://gestion-caise.hondap.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-transparent hover:border-emerald-200/60 transition-all hidden md:flex items-center space-x-1.5 text-xs font-semibold shadow-2xs group"
+              title="Accéder au site officiel (gestion-caise.hondap.com)"
+            >
+              <Globe className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+              <span className="hidden xl:inline">Site Officiel</span>
+              <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-emerald-600" />
+            </a>
+
             {/* Bouton rapide Mon Profil (Desktop) */}
             <button
               type="button"
@@ -775,6 +790,29 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ user, pendingCount = 0, on
                   <ArrowRight className="w-4 h-4 text-amber-400 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               )}
+
+              {/* 8. LIEN VERS LE SITE OFFICIEL (Mobile) */}
+              <a
+                href="https://gestion-caise.hondap.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-slate-50 to-emerald-50/60 hover:from-emerald-50 hover:to-emerald-100/80 border border-emerald-200/60 flex items-center justify-between text-slate-900 transition-all group shadow-2xs"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <div className="flex items-center space-x-1.5">
+                      <p className="text-xs font-bold text-slate-900">Site Officiel</p>
+                      <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded">Hondap</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-mono">gestion-caise.hondap.com</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+              </a>
 
             </div>
 
